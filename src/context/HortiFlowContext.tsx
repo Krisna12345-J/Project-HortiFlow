@@ -698,7 +698,7 @@ export const HortiFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         newDel.id,
         `Delegasi untuk ${newDel.delegateeName}`,
         `Pemberian delegasi persetujuan ke ${newDel.delegateeName} (Ceiling risiko: ${newDel.riskCeiling})`,
-        `Delegasi wewenang aktif s/d ${newDel.validUntil}`
+        `Delegasi wewenang aktif s/d ${newDel.endDate}`
       );
     },
     [logAudit]

@@ -161,6 +161,10 @@ export const Header: React.FC<HeaderProps> = ({ activeView, setActiveView, onOpe
         {/* Quick Intake Button */}
         <button
           id="btn-quick-intake"
+          type="button"
+          aria-haspopup="dialog"
+          aria-controls="quick-intake-modal"
+          aria-label="Ajukan Usulan Konten Baru (Membuka dialog permohonan produksi)"
           onClick={() => {
             if (onOpenIntakeModal) {
               onOpenIntakeModal();
@@ -168,9 +172,9 @@ export const Header: React.FC<HeaderProps> = ({ activeView, setActiveView, onOpe
               setActiveView('intake');
             }
           }}
-          className="flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-xs transition-colors"
+          className="flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-xs transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500"
         >
-          <PlusCircle className="w-4 h-4" />
+          <PlusCircle className="w-4 h-4" aria-hidden="true" />
           <span>Ajukan Konten</span>
         </button>
 

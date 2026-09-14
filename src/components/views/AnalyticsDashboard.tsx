@@ -39,6 +39,7 @@ import {
   DashboardWidgetConfig,
   DEFAULT_VIEW_PRESETS,
 } from '../analytics/ViewPresetsManager';
+import { useFocusTrap } from '../../hooks/useFocusTrap';
 
 interface AnalyticsDashboardProps {
   setActiveView: (view: ActiveView) => void;
@@ -46,6 +47,9 @@ interface AnalyticsDashboardProps {
 
 export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ setActiveView }) => {
   const { packages, campaigns, publicationPlans } = useHortiFlow();
+
+  // Active View Preset tracking
+  const [activePreset, setActivePreset] = useState<ViewPreset>(DEFAULT_VIEW_PRESETS[0]);
 
   // Date Range Filter State
   const [activePeriodKey, setActivePeriodKey] = useState<PredefinedPeriodKey>('MTD');
@@ -68,8 +72,14 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ setActiv
   const [showPdfModal, setShowPdfModal] = useState(false);
   const [exportSuccessToast, setExportSuccessToast] = useState<string | null>(null);
 
+  // Focus trap for PDF Modal
+  const pdfModalRef = useFocusTrap<HTMLDivElement>(showPdfModal, {
+    onEscape: () => setShowPdfModal(false),
+  });
+
   // Apply Preset Handler
   const handleApplyPreset = (preset: ViewPreset) => {
+    setActivePreset(preset);
     setActivePeriodKey(preset.periodKey);
     const foundPeriod = PREDEFINED_PERIODS.find((p) => p.key === preset.periodKey);
     if (foundPeriod) {
@@ -88,6 +98,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ setActiv
   };
 
   const handleResetWidgets = () => {
+    setActivePreset(DEFAULT_VIEW_PRESETS[0]);
     setDashboardWidgets({
       kpiCards: true,
       operationalInsights: true,
@@ -449,54 +460,63 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ setActiv
   const visibleWidgetCount = Object.values(dashboardWidgets).filter(Boolean).length;
   const isCustomViewActive = visibleWidgetCount < 5;
 
-  // Handle Export to CSV
-  const handleExportCSV = () => {
+  // Handle Export to CSV for Selected Preset or All Modules
+  const handleExportCSV = (mode: 'preset' | 'all' = 'preset') => {
     setShowExportMenu(false);
     const csvRows: string[] = [];
     csvRows.push('HORTIFLOW - LAPORAN EVALUASI & ANALITIK KINERJA KONTEN');
-    csvRows.push(`Periode Dipilih:,"${periodData.periodLabel}"`);
+    csvRows.push(`Nama Preset Dipilih:,"${activePreset.name}"`);
+    csvRows.push(`Deskripsi Preset:,"${activePreset.description}"`);
+    csvRows.push(`Periode Evaluasi:,"${periodData.periodLabel}"`);
     csvRows.push(`Filter Kampanye:,"${campaignFilter}"`);
-    csvRows.push(`Filter Saluran:,"${channelFilter}"`);
+    csvRows.push(`Filter Saluran Siar:,"${channelFilter}"`);
+    csvRows.push(`Cakupan Data:,"${mode === 'preset' ? 'Sesuai Preset Tampilan (' + activePreset.name + ')' : 'Seluruh Modul Analitik'}"`);
     csvRows.push(`Tanggal Ekspor:,"${new Date().toLocaleDateString('id-ID', { dateStyle: 'full' })}"`);
     csvRows.push('');
 
+    // Determine which modules to include based on mode and widget configuration
+    const includeKpis = mode === 'all' || dashboardWidgets.kpiCards;
+    const includeCharts = mode === 'all' || dashboardWidgets.charts;
+    const includeChannels = mode === 'all' || dashboardWidgets.channelTable;
+    const includeScorecards = mode === 'all' || dashboardWidgets.campaignScorecard;
+
     // 1. KPI Operasional
-    if (dashboardWidgets.kpiCards) {
+    if (includeKpis) {
       csvRows.push('--- RINGKASAN METRIK KPI OPERASIONAL ---');
-      csvRows.push('Metrik,Nilai,Status/Catatan');
-      csvRows.push(`Paket Diproduksi,${periodData.totalProduced},Volume Periode`);
-      csvRows.push(`Publikasi Berhasil,${periodData.publishedCount},Sukses siar`);
-      csvRows.push(`Kepatuhan SLA,${periodData.slaCompliance}%,Target 95%`);
-      csvRows.push(`Rata-rata Cycle Time,${periodData.avgCycleTime},Stabil`);
-      csvRows.push(`Paket Terkendala,${periodData.blockedCount},Blocker status`);
-      csvRows.push(`Tingkat Persetujuan,${periodData.approvalSuccessRate}%,Tingkat lolos`);
-      csvRows.push(`Total Engagement,${periodData.totalEngagement},Aksi interaksi`);
-      csvRows.push(`Arsip Selesai,${periodData.archiveCompletion}%,Manifest lengkap`);
+      csvRows.push('Indikator Kinerja,Nilai Capaian,Satuan,Target / Catatan Evaluasi');
+      csvRows.push(`Total Paket Diproduksi,${periodData.totalProduced},Paket,Volume Produksi Periode`);
+      csvRows.push(`Publikasi Berhasil,${periodData.publishedCount},Paket,Sukses Siar`);
+      csvRows.push(`Kepatuhan SLA,${periodData.slaCompliance}%,Persen,Target Minimum >= 95%`);
+      csvRows.push(`Rata-rata Waktu Siklus (Cycle Time),${periodData.avgCycleTime},Waktu,Durasi Rata-rata Pemrosesan`);
+      csvRows.push(`Paket Terkendala (Blocker),${periodData.blockedCount},Paket,Status Tertahan / Butuh Intervensi`);
+      csvRows.push(`Tingkat Persetujuan Redaksi,${periodData.approvalSuccessRate}%,Persen,Kelulusan Telaah Eselon`);
+      csvRows.push(`Total Akumulasi Engagement,${periodData.totalEngagement},Interaksi,Jangkauan & Reaksi Publik`);
+      csvRows.push(`Kelengkapan Manifest Arsip,${periodData.archiveCompletion}%,Persen,Kepatuhan Metadata Terverifikasi`);
       csvRows.push('');
     }
 
-    // 2. Data Tren
-    if (dashboardWidgets.charts) {
+    // 2. Data Tren & Evaluasi Siklus Hidup
+    if (includeCharts) {
       csvRows.push(`--- ${periodData.trendTitle.toUpperCase()} ---`);
-      csvRows.push('Periode/Label,Diproduksi,Berhasil Terbit');
+      csvRows.push('Interval Periode,Jumlah Diproduksi,Berhasil Terbit,Tingkat Keberhasilan (%)');
       periodData.trendData.forEach((w) => {
-        csvRows.push(`"${w.label}",${w.produced},${w.published}`);
+        const rate = Math.round((w.published / (w.produced || 1)) * 100);
+        csvRows.push(`"${w.label}",${w.produced},${w.published},"${rate}%"`);
       });
       csvRows.push('');
 
-      // 3. Distribusi Status Siklus Hidup
       csvRows.push('--- DISTRIBUSI STATUS SIKLUS HIDUP KONTEN ---');
-      csvRows.push('Status,Jumlah Paket,Persentase');
+      csvRows.push('Status Siklus Hidup,Jumlah Paket,Proporsi (%)');
       periodData.lifecycle.forEach((l) => {
-        csvRows.push(`"${l.label}",${l.count},${Math.round((l.count / l.total) * 100)}%`);
+        csvRows.push(`"${l.label}",${l.count},"${Math.round((l.count / l.total) * 100)}%"`);
       });
       csvRows.push('');
     }
 
-    // 4. Kinerja Kanal Publikasi
-    if (dashboardWidgets.channelTable) {
-      csvRows.push('--- KINERJA KANAL PUBLIKASI (CHANNEL PERFORMANCE) ---');
-      csvRows.push('Saluran Publikasi,Volume Siar (Postingan),Realisasi Engagement,Target Capaian,Variansi (%),Status Kinerja');
+    // 3. Kinerja Kanal Publikasi Resmi
+    if (includeChannels) {
+      csvRows.push('--- KINERJA KANAL PUBLIKASI RESMI (CHANNEL PERFORMANCE) ---');
+      csvRows.push('Saluran Publikasi,Volume Siar (Postingan),Realisasi Engagement,Target Capaian,Variansi (%),Evaluasi Kinerja');
       displayedChannels.forEach((row) => {
         csvRows.push(
           `"${row.channel}","${row.pubCount} Postingan","${row.engagement}","${row.target}","${row.variance}","${
@@ -507,8 +527,8 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ setActiv
       csvRows.push('');
     }
 
-    // 5. Campaign Scorecard
-    if (dashboardWidgets.campaignScorecard) {
+    // 4. Campaign Scorecard
+    if (includeScorecards) {
       csvRows.push('--- LEMBAR SKOR KAMPANYE (CAMPAIGN SCORECARD) ---');
       csvRows.push('Nama Kampanye,Objektif Utama,Target Capaian,Capaian Aktual,Variansi,Lessons Learned');
       campaignScorecards.forEach((sc) => {
@@ -524,12 +544,22 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ setActiv
     const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + encodeURIComponent(csvRows.join('\n'));
     const link = document.createElement('a');
     link.setAttribute('href', csvContent);
-    link.setAttribute('download', `HortiFlow_Analytics_${activePeriodKey}_${new Date().toISOString().slice(0, 10)}.csv`);
+    const safePresetName = activePreset.name.replace(/[^a-zA-Z0-9]/g, '_');
+    link.setAttribute(
+      'download',
+      mode === 'preset'
+        ? `HortiFlow_Analytics_${safePresetName}_${activePeriodKey}_${new Date().toISOString().slice(0, 10)}.csv`
+        : `HortiFlow_Analytics_AllData_${activePeriodKey}_${new Date().toISOString().slice(0, 10)}.csv`
+    );
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
 
-    setExportSuccessToast(`Laporan CSV (${periodData.periodLabel}) berhasil diunduh!`);
+    const toastMsg =
+      mode === 'preset'
+        ? `Laporan CSV Preset "${activePreset.name}" (${periodData.periodLabel}) berhasil diunduh!`
+        : `Laporan CSV Lengkap (${periodData.periodLabel}) berhasil diunduh!`;
+    setExportSuccessToast(toastMsg);
     setTimeout(() => setExportSuccessToast(null), 4000);
   };
 
@@ -544,18 +574,30 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ setActiv
     window.print();
   };
 
+  // Direct Quick Print
+  const handleDirectPrint = () => {
+    setShowExportMenu(false);
+    setShowPdfModal(true);
+    setTimeout(() => {
+      window.print();
+    }, 200);
+  };
+
   return (
-    <div className="space-y-6 lg:space-y-8 pb-12" id="analytics-dashboard-view">
+    <div
+      className={`space-y-6 lg:space-y-8 pb-12 ${showPdfModal ? 'print:hidden' : ''}`}
+      id="analytics-dashboard-view"
+    >
       {/* Toast Notification */}
       {exportSuccessToast && (
-        <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-2xl flex items-center gap-3 border border-slate-700 animate-in fade-in slide-in-from-bottom-2">
+        <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-2xl flex items-center gap-3 border border-slate-700 animate-in fade-in slide-in-from-bottom-2 print:hidden">
           <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
           <span className="text-xs font-medium">{exportSuccessToast}</span>
         </div>
       )}
 
       {/* 1. Header with Title, View Presets & Export Actions */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 print:hidden">
         <div>
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold mb-2">
             <BarChart3 className="w-3.5 h-3.5 text-emerald-600" />
@@ -570,7 +612,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ setActiv
         </div>
 
         {/* Action Controls: View Presets Manager + Export Dropdown */}
-        <div className="flex flex-wrap items-center gap-2.5 shrink-0 self-start lg:self-auto">
+        <div className="flex flex-wrap items-center gap-2.5 shrink-0 self-start lg:self-auto print:hidden">
           {/* VIEW PRESETS MANAGER COMPONENT */}
           <ViewPresetsManager
             currentPeriodKey={activePeriodKey}
@@ -593,9 +635,10 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ setActiv
               id="btn-export-analytics-report"
               onClick={() => setShowExportMenu(!showExportMenu)}
               className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl text-xs transition-colors shadow-xs flex items-center gap-2"
+              title="Pilihan Ekspor dan Cetak Laporan"
             >
               <Download className="w-4 h-4 text-emerald-400" />
-              <span>Ekspor Laporan Kinerja</span>
+              <span>Ekspor & Cetak Laporan</span>
               <ChevronDown className="w-3.5 h-3.5 opacity-70" />
             </button>
 
@@ -606,26 +649,49 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ setActiv
                   className="fixed inset-0 z-30"
                   onClick={() => setShowExportMenu(false)}
                 />
-                <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 z-40 text-xs divide-y divide-slate-100">
-                  <div className="px-3 py-2 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                    Pilih Format Ekspor
+                <div className="absolute right-0 mt-2 w-72 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 z-40 text-xs divide-y divide-slate-100">
+                  <div className="px-3.5 py-2 text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
+                    <span>Opsi Ekspor & Cetak</span>
+                    <span className="text-[10px] text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded font-mono font-medium max-w-[120px] truncate">
+                      {activePreset.name}
+                    </span>
                   </div>
 
-                  <div className="p-1">
+                  <div className="p-1 space-y-0.5">
                     <button
-                      id="btn-export-csv"
-                      onClick={handleExportCSV}
+                      id="btn-export-csv-preset"
+                      onClick={() => handleExportCSV('preset')}
                       className="w-full text-left px-3 py-2.5 rounded-lg hover:bg-emerald-50 hover:text-emerald-900 flex items-center gap-2.5 transition-colors group"
                     >
                       <div className="w-7 h-7 rounded-md bg-emerald-100 flex items-center justify-center text-emerald-700 group-hover:bg-emerald-200 shrink-0">
                         <FileSpreadsheet className="w-4 h-4" />
                       </div>
-                      <div>
-                        <div className="font-bold text-slate-800 group-hover:text-emerald-950">Ekspor Format CSV</div>
-                        <div className="text-[10px] text-slate-500">File spreadsheet data lengkap (.csv)</div>
+                      <div className="min-w-0">
+                        <div className="font-bold text-slate-800 group-hover:text-emerald-950 truncate">
+                          Ekspor CSV (Sesuai Preset)
+                        </div>
+                        <div className="text-[10px] text-slate-500 truncate">
+                          Preset: {activePreset.name}
+                        </div>
                       </div>
                     </button>
 
+                    <button
+                      id="btn-export-csv-all"
+                      onClick={() => handleExportCSV('all')}
+                      className="w-full text-left px-3 py-2.5 rounded-lg hover:bg-slate-100 flex items-center gap-2.5 transition-colors group"
+                    >
+                      <div className="w-7 h-7 rounded-md bg-slate-100 flex items-center justify-center text-slate-600 group-hover:bg-slate-200 shrink-0">
+                        <Layers className="w-4 h-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="font-bold text-slate-800">Ekspor CSV Lengkap</div>
+                        <div className="text-[10px] text-slate-500">Semua metrik dan tabel modul</div>
+                      </div>
+                    </button>
+                  </div>
+
+                  <div className="p-1 space-y-0.5">
                     <button
                       id="btn-export-pdf"
                       onClick={handleOpenPdfModal}
@@ -634,9 +700,27 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ setActiv
                       <div className="w-7 h-7 rounded-md bg-rose-100 flex items-center justify-center text-rose-700 group-hover:bg-rose-200 shrink-0">
                         <FileText className="w-4 h-4" />
                       </div>
-                      <div>
-                        <div className="font-bold text-slate-800 group-hover:text-rose-950">Ekspor Format PDF</div>
-                        <div className="text-[10px] text-slate-500">Pratinjau cetak & unduh PDF (.pdf)</div>
+                      <div className="min-w-0">
+                        <div className="font-bold text-slate-800 group-hover:text-rose-950">
+                          Pratinjau & Cetak Laporan PDF
+                        </div>
+                        <div className="text-[10px] text-slate-500">
+                          Format resmi standar A4 Ditjen Hortikultura
+                        </div>
+                      </div>
+                    </button>
+
+                    <button
+                      id="btn-direct-print"
+                      onClick={handleDirectPrint}
+                      className="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-100 flex items-center gap-2.5 transition-colors group"
+                    >
+                      <div className="w-7 h-7 rounded-md bg-slate-100 flex items-center justify-center text-slate-700 group-hover:bg-slate-200 shrink-0">
+                        <Printer className="w-4 h-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="font-bold text-slate-800">Cetak Langsung (Quick Print)</div>
+                        <div className="text-[10px] text-slate-500">Buka dialog cetak browser langsung</div>
                       </div>
                     </button>
                   </div>
@@ -1000,20 +1084,26 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ setActiv
 
       {/* 9. PDF Preview & Print Modal */}
       {showPdfModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-950/70 backdrop-blur-xs overflow-y-auto animate-in fade-in">
-          <div className="bg-white w-full max-w-4xl rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh]">
-            {/* Modal Action Bar */}
-            <div className="px-6 py-4 bg-slate-900 text-white flex items-center justify-between shrink-0">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-950/70 backdrop-blur-xs overflow-y-auto animate-in fade-in print:static print:inset-auto print:z-auto print:bg-white print:p-0 print:m-0 print:overflow-visible print:block">
+          <div
+            ref={pdfModalRef}
+            className="bg-white w-full max-w-4xl rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh] print:max-w-none print:w-full print:shadow-none print:border-none print:max-h-none print:overflow-visible print:rounded-none"
+          >
+            {/* Modal Action Bar - Hidden in Print */}
+            <div className="px-6 py-4 bg-slate-900 text-white flex items-center justify-between shrink-0 print:hidden">
               <div className="flex items-center gap-2.5">
                 <FileText className="w-5 h-5 text-emerald-400" />
-                <span className="font-bold text-sm">Pratinjau Dokumen Laporan Kinerja (PDF)</span>
+                <span className="font-bold text-sm">Pratinjau Dokumen Laporan Evaluasi & Kinerja (PDF Resmi)</span>
+                <span className="text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-800/80 px-2 py-0.5 rounded font-mono">
+                  Preset: {activePreset.name}
+                </span>
               </div>
 
               <div className="flex items-center gap-2">
                 <button
                   id="btn-print-pdf-report"
                   onClick={handlePrintPDF}
-                  className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 shadow-sm"
+                  className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 shadow-sm"
                 >
                   <Printer className="w-4 h-4" />
                   <span>Cetak / Simpan PDF</span>
@@ -1021,6 +1111,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ setActiv
                 <button
                   onClick={() => setShowPdfModal(false)}
                   className="p-1.5 text-slate-400 hover:text-white rounded-lg transition-colors"
+                  title="Tutup Pratinjau"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -1028,87 +1119,316 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ setActiv
             </div>
 
             {/* Printable Report Document Container */}
-            <div className="p-8 overflow-y-auto space-y-6 text-slate-900 bg-white" id="printable-analytics-report">
-              {/* Document Header */}
-              <div className="flex items-start justify-between border-b-2 border-emerald-800 pb-5">
-                <div>
-                  <Logo size="md" />
-                  <p className="text-xs text-slate-500 mt-1.5">
-                    Direktorat Jenderal Hortikultura - Kementerian Pertanian RI
-                  </p>
-                </div>
-                <div className="text-right text-xs text-slate-600 space-y-0.5">
-                  <div className="font-bold text-slate-900 text-sm uppercase">Laporan Evaluasi & Analitik</div>
-                  <div>No. Dokumen: <span className="font-mono font-bold">RPT/HF/{new Date().getFullYear()}/09/01</span></div>
-                  <div>Tanggal: <span className="font-mono">{new Date().toLocaleDateString('id-ID', { dateStyle: 'long' })}</span></div>
-                  <div>Periode: <span className="font-semibold text-emerald-800">{periodData.periodLabel}</span></div>
-                </div>
-              </div>
-
-              {/* Executive Summary */}
-              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs space-y-1.5">
-                <div className="font-bold text-slate-900 text-sm">Ringkasan Eksekutif ({periodData.periodLabel})</div>
-                <p className="text-slate-600 leading-relaxed">
-                  Laporan ini merangkum kinerja operasional produksi dan distribusi konten hortikultura terpadu. Kepatuhan SLA mencapai{' '}
-                  <strong className="text-emerald-700">{periodData.slaCompliance}%</strong> dengan total{' '}
-                  <strong className="text-slate-900">{periodData.totalProduced} paket</strong> diproduksi dan{' '}
-                  <strong className="text-emerald-700">{periodData.publishedCount} paket</strong> berhasil disiarkan ke berbagai kanal resmi.
-                </p>
-              </div>
-
-              {/* KPI Summary Grid */}
-              {dashboardWidgets.kpiCards && (
-                <div>
-                  <div className="font-bold text-xs uppercase tracking-wider text-slate-500 mb-2.5">
-                    1. Rekapitulasi Metrik Utama
+            <div
+              className="p-8 sm:p-10 overflow-y-auto space-y-7 text-slate-900 bg-white print:p-6 print:overflow-visible print:space-y-6 print:text-black"
+              id="printable-analytics-report"
+            >
+              {/* Kop Surat Resmi Ditjen Hortikultura */}
+              <div className="border-b-2 border-emerald-800 pb-5">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-3.5">
+                    <Logo size="md" />
+                    <div className="border-l border-slate-200 pl-3.5">
+                      <h2 className="text-sm font-extrabold uppercase tracking-wide text-slate-900 leading-tight">
+                        Kementerian Pertanian Republik Indonesia
+                      </h2>
+                      <p className="text-xs font-semibold text-emerald-800">
+                        Direktorat Jenderal Hortikultura
+                      </p>
+                      <p className="text-[11px] text-slate-500">
+                        Sistem Manajemen & Evaluasi Dampak Publikasi Terpadu (HortiFlow)
+                      </p>
+                    </div>
                   </div>
+                  <div className="text-right text-xs space-y-1">
+                    <div className="font-extrabold text-slate-900 text-sm uppercase tracking-wide">
+                      Laporan Evaluasi & Analitik Kinerja
+                    </div>
+                    <div className="text-slate-600">
+                      No. Dokumen: <span className="font-mono font-bold text-slate-800">RPT/HF/{new Date().getFullYear()}/09/01</span>
+                    </div>
+                    <div className="text-slate-600">
+                      Tanggal Terbit: <span className="font-mono">{new Date().toLocaleDateString('id-ID', { dateStyle: 'long' })}</span>
+                    </div>
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200 font-semibold text-[11px]">
+                      <span>Periode: {periodData.periodLabel}</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-3 flex items-center justify-between pt-2.5 border-t border-slate-150 text-[11px] text-slate-500">
+                  <div>
+                    <span>Preset Analisis: </span>
+                    <strong className="text-slate-800">{activePreset.name}</strong>
+                    <span className="text-slate-400"> — {activePreset.description}</span>
+                  </div>
+                  <div className="font-mono text-slate-400">Klasifikasi: DOKUMEN EVALUASI INTERNAL</div>
+                </div>
+              </div>
+
+              {/* Ringkasan Eksekutif (Executive Summary) */}
+              <div className="bg-slate-50/90 border border-slate-200 rounded-xl p-5 space-y-3.5 print-break-inside-avoid">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-emerald-700" />
+                    <h3 className="font-extrabold text-slate-900 text-sm uppercase tracking-wider">
+                      Ringkasan Eksekutif Kinerja Publikasi ({periodData.periodLabel})
+                    </h3>
+                  </div>
+                  <span className="text-[11px] font-mono font-semibold px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded">
+                    Status Kinerja: Memenuhi Target
+                  </span>
+                </div>
+                <p className="text-xs text-slate-600 leading-relaxed text-justify">
+                  Berdasarkan pemantauan siklus hidup konten hortikultura pada periode <strong>{periodData.periodLabel}</strong>,
+                  total <strong>{periodData.totalProduced} paket materi informasi</strong> telah diproduksi dengan <strong>{periodData.publishedCount} paket</strong> berhasil disiarkan secara multikanal.
+                  Tingkat kepatuhan terhadap Service Level Agreement (SLA) operasional mencapai <strong className="text-emerald-700">{periodData.slaCompliance}%</strong> (target minimum 95.0%).
+                  Akumulasi interaksi dan keterlibatan masyarakat (engagement) tercatat sebesar <strong className="text-slate-900">{periodData.totalEngagement}</strong> reaksi dan tanggapan aktif masyarakat terhadap kampanye prioritas.
+                </p>
+
+                {/* 3 Executive Highlight Callout Cards */}
+                <div className="grid grid-cols-3 gap-3 pt-1">
+                  <div className="bg-white p-3 rounded-lg border border-slate-200">
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">Kepatuhan SLA</span>
+                    <div className="flex items-baseline gap-1.5 mt-0.5">
+                      <span className="text-lg font-black font-mono text-emerald-700">{periodData.slaCompliance}%</span>
+                      <span className="text-[10px] text-slate-500 font-medium">Target ≥95%</span>
+                    </div>
+                    <p className="text-[10px] text-slate-500 mt-1">Kecepatan telaah eselon & distribusi tepat waktu.</p>
+                  </div>
+                  <div className="bg-white p-3 rounded-lg border border-slate-200">
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">Rasio Terbit Sukses</span>
+                    <div className="flex items-baseline gap-1.5 mt-0.5">
+                      <span className="text-lg font-black font-mono text-slate-900">
+                        {Math.round((periodData.publishedCount / (periodData.totalProduced || 1)) * 100)}%
+                      </span>
+                      <span className="text-[10px] text-slate-500 font-medium font-mono">({periodData.publishedCount}/{periodData.totalProduced} Paket)</span>
+                    </div>
+                    <p className="text-[10px] text-slate-500 mt-1">Konversi paket naskah & grafis siap tayang.</p>
+                  </div>
+                  <div className="bg-white p-3 rounded-lg border border-slate-200">
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">Interaksi Publik</span>
+                    <div className="flex items-baseline gap-1.5 mt-0.5">
+                      <span className="text-lg font-black font-mono text-slate-900">{periodData.totalEngagement}</span>
+                      <span className="text-[10px] text-emerald-700 font-medium">Total Respon</span>
+                    </div>
+                    <p className="text-[10px] text-slate-500 mt-1">Jangkauan gabungan kanal portal & media sosial.</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* 1. Rekapitulasi Statistik KPI Operasional (8 Kartu Lengkap) */}
+              {dashboardWidgets.kpiCards && (
+                <div className="space-y-2.5 print-break-inside-avoid">
+                  <div className="flex items-center justify-between border-b border-slate-200 pb-1.5">
+                    <h3 className="font-extrabold text-xs uppercase tracking-wider text-slate-800">
+                      1. Rekapitulasi Metrik Kinerja Utama (KPI Operasional)
+                    </h3>
+                    <span className="text-[10px] text-slate-400 font-mono">8 Indikator Terpantau</span>
+                  </div>
+
                   <div className="grid grid-cols-4 gap-2.5 text-xs">
-                    <div className="p-3 border border-slate-200 rounded-lg bg-white">
-                      <span className="text-[10px] text-slate-500 block">Total Diproduksi</span>
-                      <span className="text-lg font-bold font-mono text-slate-900">{periodData.totalProduced} Paket</span>
+                    <div className="p-3 border border-slate-200 rounded-lg bg-white kpi-print-card">
+                      <span className="text-[10px] text-slate-500 font-medium block">Total Diproduksi</span>
+                      <span className="text-lg font-black font-mono text-slate-900">{periodData.totalProduced} Paket</span>
+                      <span className="text-[10px] text-slate-400 block mt-0.5">Volume Periode</span>
                     </div>
-                    <div className="p-3 border border-slate-200 rounded-lg bg-white">
-                      <span className="text-[10px] text-slate-500 block">Publikasi Sukses</span>
-                      <span className="text-lg font-bold font-mono text-emerald-700">{periodData.publishedCount} Paket</span>
+
+                    <div className="p-3 border border-slate-200 rounded-lg bg-white kpi-print-card">
+                      <span className="text-[10px] text-slate-500 font-medium block">Publikasi Berhasil</span>
+                      <span className="text-lg font-black font-mono text-emerald-700">{periodData.publishedCount} Paket</span>
+                      <span className="text-[10px] text-emerald-600 block mt-0.5">Siap & Terdistribusi</span>
                     </div>
-                    <div className="p-3 border border-slate-200 rounded-lg bg-white">
-                      <span className="text-[10px] text-slate-500 block">Kepatuhan SLA</span>
-                      <span className="text-lg font-bold font-mono text-emerald-700">{periodData.slaCompliance}%</span>
+
+                    <div className="p-3 border border-slate-200 rounded-lg bg-white kpi-print-card">
+                      <span className="text-[10px] text-slate-500 font-medium block">Kepatuhan SLA</span>
+                      <span className="text-lg font-black font-mono text-emerald-700">{periodData.slaCompliance}%</span>
+                      <span className="text-[10px] text-slate-400 block mt-0.5">Standar ≥95.0%</span>
                     </div>
-                    <div className="p-3 border border-slate-200 rounded-lg bg-white">
-                      <span className="text-[10px] text-slate-500 block">Total Engagement</span>
-                      <span className="text-lg font-bold font-mono text-slate-900">{periodData.totalEngagement}</span>
+
+                    <div className="p-3 border border-slate-200 rounded-lg bg-white kpi-print-card">
+                      <span className="text-[10px] text-slate-500 font-medium block">Total Engagement</span>
+                      <span className="text-lg font-black font-mono text-slate-900">{periodData.totalEngagement}</span>
+                      <span className="text-[10px] text-slate-400 block mt-0.5">Respon Publik</span>
+                    </div>
+
+                    <div className="p-3 border border-slate-200 rounded-lg bg-white kpi-print-card">
+                      <span className="text-[10px] text-slate-500 font-medium block">Rata-rata Cycle Time</span>
+                      <span className="text-lg font-black font-mono text-slate-900">{periodData.avgCycleTime}</span>
+                      <span className="text-[10px] text-slate-400 block mt-0.5">Durasi Produksi</span>
+                    </div>
+
+                    <div className="p-3 border border-slate-200 rounded-lg bg-white kpi-print-card">
+                      <span className="text-[10px] text-slate-500 font-medium block">Tingkat Persetujuan</span>
+                      <span className="text-lg font-black font-mono text-emerald-700">{periodData.approvalSuccessRate}%</span>
+                      <span className="text-[10px] text-slate-400 block mt-0.5">Lolos Telaah Eselon</span>
+                    </div>
+
+                    <div className="p-3 border border-slate-200 rounded-lg bg-white kpi-print-card">
+                      <span className="text-[10px] text-slate-500 font-medium block">Kendala Produksi</span>
+                      <span className="text-lg font-black font-mono text-amber-700">{periodData.blockedCount} Blocker</span>
+                      <span className="text-[10px] text-amber-600 block mt-0.5">Status Tertahan</span>
+                    </div>
+
+                    <div className="p-3 border border-slate-200 rounded-lg bg-white kpi-print-card">
+                      <span className="text-[10px] text-slate-500 font-medium block">Kelengkapan Arsip</span>
+                      <span className="text-lg font-black font-mono text-emerald-700">{periodData.archiveCompletion}%</span>
+                      <span className="text-[10px] text-emerald-600 block mt-0.5">Manifest Digital 100%</span>
                     </div>
                   </div>
                 </div>
               )}
 
-              {/* Channel Table */}
-              {dashboardWidgets.channelTable && (
-                <div>
-                  <div className="font-bold text-xs uppercase tracking-wider text-slate-500 mb-2.5">
-                    2. Kinerja Kanal Publikasi Resmi
+              {/* 2. Grafik Evaluasi Tren Konten (Visual Print-Friendly Bar Chart & Lifecycle) */}
+              {dashboardWidgets.charts && (
+                <div className="space-y-3.5 print-break-inside-avoid">
+                  <div className="flex items-center justify-between border-b border-slate-200 pb-1.5">
+                    <div>
+                      <h3 className="font-extrabold text-xs uppercase tracking-wider text-slate-800">
+                        2. Grafik Evaluasi Tren Produksi & Publikasi Konten
+                      </h3>
+                      <p className="text-[11px] text-slate-500 mt-0.5">
+                        {periodData.trendTitle} — Analisis komparasi volume materi naskah diproduksi terhadap realisasi paket berhasil tayang.
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-3 text-[11px]">
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-3 h-3 rounded-xs bg-slate-700 inline-block" />
+                        <span className="text-slate-600 font-medium">Diproduksi</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-3 h-3 rounded-xs bg-emerald-600 inline-block" />
+                        <span className="text-slate-600 font-medium">Berhasil Terbit</span>
+                      </div>
+                    </div>
                   </div>
-                  <table className="w-full text-xs text-left border border-slate-200">
-                    <thead className="bg-slate-100 border-b border-slate-200 font-bold text-slate-700">
+
+                  {/* Clean Dual Bar Breakdown */}
+                  <div className="bg-slate-50/70 border border-slate-200 rounded-xl p-4 space-y-3.5 chart-print-card">
+                    {periodData.trendData.map((item, idx) => {
+                      const rate = Math.round((item.published / (item.produced || 1)) * 100);
+                      const producedPct = Math.min(100, Math.round((item.produced / periodData.trendMax) * 100));
+                      const publishedPct = Math.min(100, Math.round((item.published / periodData.trendMax) * 100));
+
+                      return (
+                        <div key={idx} className="space-y-1">
+                          <div className="flex items-center justify-between text-xs font-semibold text-slate-700">
+                            <span className="font-mono text-slate-900 font-bold">{item.label}</span>
+                            <div className="flex items-center gap-3 text-[11px]">
+                              <span className="text-slate-500 font-mono">{item.produced} Paket Diproduksi</span>
+                              <span className="text-emerald-700 font-mono font-bold">{item.published} Terbit</span>
+                              <span className="font-mono text-[10px] px-1.5 py-0.2 rounded bg-white border border-slate-200 font-bold text-slate-700">
+                                {rate}% Sukses
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Dual Bar Comparison */}
+                          <div className="grid grid-cols-2 gap-2">
+                            <div className="bg-slate-200/80 rounded h-3 overflow-hidden">
+                              <div
+                                className="bg-slate-700 h-full rounded"
+                                style={{ width: `${producedPct}%` }}
+                              />
+                            </div>
+                            <div className="bg-emerald-100/80 rounded h-3 overflow-hidden">
+                              <div
+                                className="bg-emerald-600 h-full rounded"
+                                style={{ width: `${publishedPct}%` }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                    {/* Lifecycle Proportional Distribution Bar */}
+                    <div className="pt-3 border-t border-slate-200/80 space-y-2">
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="font-bold text-slate-700 uppercase tracking-wider">
+                          Distribusi Status Siklus Hidup Materi
+                        </span>
+                        <span className="font-mono text-slate-500">Total {periodData.totalProduced} Paket Terdaftar</span>
+                      </div>
+
+                      {/* Segmented Bar */}
+                      <div className="h-3 w-full rounded-full overflow-hidden flex bg-slate-200">
+                        {periodData.lifecycle.map((l, lIdx) => {
+                          const pct = Math.round((l.count / l.total) * 100);
+                          return (
+                            <div
+                              key={lIdx}
+                              title={`${l.label}: ${l.count} Paket (${pct}%)`}
+                              className={`${l.color} h-full transition-all`}
+                              style={{ width: `${pct}%` }}
+                            />
+                          );
+                        })}
+                      </div>
+
+                      {/* Legend */}
+                      <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-600 pt-1">
+                        {periodData.lifecycle.map((l, lIdx) => (
+                          <div key={lIdx} className="flex items-center gap-1.5">
+                            <span className={`w-2.5 h-2.5 rounded-xs ${l.color}`} />
+                            <span className="font-medium text-slate-700">{l.label}:</span>
+                            <span className="font-mono font-bold text-slate-900">{l.count}</span>
+                            <span className="font-mono text-[10px] text-slate-400">
+                              ({Math.round((l.count / l.total) * 100)}%)
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 3. Kinerja Kanal Publikasi Resmi (Channel Performance Table) */}
+              {dashboardWidgets.channelTable && (
+                <div className="space-y-2.5 print-break-inside-avoid">
+                  <div className="flex items-center justify-between border-b border-slate-200 pb-1.5">
+                    <h3 className="font-extrabold text-xs uppercase tracking-wider text-slate-800">
+                      3. Kinerja Kanal Publikasi Resmi
+                    </h3>
+                    <span className="text-[10px] text-slate-400 font-mono">Evaluasi Efektivitas Saluran</span>
+                  </div>
+
+                  <table className="w-full text-xs text-left border border-slate-200 rounded-lg overflow-hidden">
+                    <thead className="bg-slate-100/80 border-b border-slate-200 font-bold text-slate-700">
                       <tr>
                         <th className="p-2.5">Saluran Publikasi</th>
                         <th className="p-2.5">Volume Siar</th>
                         <th className="p-2.5">Realisasi Engagement</th>
-                        <th className="p-2.5">Target</th>
-                        <th className="p-2.5">Variansi</th>
-                        <th className="p-2.5">Status</th>
+                        <th className="p-2.5">Target Capaian</th>
+                        <th className="p-2.5">Variansi (%)</th>
+                        <th className="p-2.5">Evaluasi Status</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-200">
                       {displayedChannels.map((row, idx) => (
-                        <tr key={idx}>
-                          <td className="p-2.5 font-medium">{row.channel}</td>
-                          <td className="p-2.5 font-mono">{row.pubCount} Post</td>
-                          <td className="p-2.5 font-mono font-bold">{row.engagement}</td>
+                        <tr key={idx} className="hover:bg-slate-50/50">
+                          <td className="p-2.5 font-semibold text-slate-900">{row.channel}</td>
+                          <td className="p-2.5 font-mono text-slate-700">{row.pubCount} Postingan</td>
+                          <td className="p-2.5 font-mono font-bold text-slate-900">{row.engagement}</td>
                           <td className="p-2.5 font-mono text-slate-500">{row.target}</td>
-                          <td className="p-2.5 font-mono font-bold text-emerald-700">{row.variance}</td>
-                          <td className="p-2.5 font-semibold">{row.variance.startsWith('+') ? 'Melampaui' : 'Evaluasi'}</td>
+                          <td
+                            className={`p-2.5 font-mono font-bold ${
+                              row.variance.startsWith('+') ? 'text-emerald-700' : 'text-amber-700'
+                            }`}
+                          >
+                            {row.variance}
+                          </td>
+                          <td className="p-2.5 font-semibold">
+                            <span
+                              className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold ${
+                                row.variance.startsWith('+')
+                                  ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                                  : 'bg-amber-50 text-amber-800 border border-amber-200'
+                              }`}
+                            >
+                              {row.variance.startsWith('+') ? 'Melampaui Target' : 'Perlu Evaluasi'}
+                            </span>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -1116,22 +1436,45 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ setActiv
                 </div>
               )}
 
-              {/* Campaign Scorecards Summary */}
+              {/* 4. Evaluasi Skor Kampanye (Campaign Scorecard) */}
               {dashboardWidgets.campaignScorecard && (
-                <div>
-                  <div className="font-bold text-xs uppercase tracking-wider text-slate-500 mb-2.5">
-                    3. Evaluasi Skor Kampanye
+                <div className="space-y-2.5 print-break-inside-avoid">
+                  <div className="flex items-center justify-between border-b border-slate-200 pb-1.5">
+                    <h3 className="font-extrabold text-xs uppercase tracking-wider text-slate-800">
+                      4. Evaluasi Skor Kampanye Strategis
+                    </h3>
+                    <span className="text-[10px] text-slate-400 font-mono">Pencapaian Objektif & Pelajaran Evaluasi</span>
                   </div>
+
                   <div className="space-y-2.5 text-xs">
                     {campaignScorecards.map((sc, idx) => (
-                      <div key={idx} className="p-3 border border-slate-200 rounded-lg bg-slate-50/50">
-                        <div className="flex justify-between font-bold text-slate-900 mb-1">
-                          <span>{sc.name}</span>
-                          <span className="text-emerald-700 font-mono">{sc.variance}</span>
+                      <div
+                        key={idx}
+                        className="p-3 border border-slate-200 rounded-lg bg-slate-50/60 scorecard-print-card space-y-2"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-extrabold text-slate-900 text-xs">{sc.name}</span>
+                          <span className="text-emerald-800 bg-emerald-100/80 px-2 py-0.5 rounded font-mono font-bold text-[10px]">
+                            {sc.variance}
+                          </span>
                         </div>
-                        <p className="text-slate-600 mb-1.5">{sc.objective}</p>
-                        <div className="text-[11px] text-slate-500 italic bg-white p-2 rounded border border-slate-150">
-                          <strong>Lessons Learned:</strong> {sc.lessonsLearned}
+                        <div className="grid grid-cols-3 gap-2 text-[11px] bg-white p-2 rounded border border-slate-200">
+                          <div>
+                            <span className="text-slate-400 block">Objektif Utama:</span>
+                            <span className="font-medium text-slate-800">{sc.objective}</span>
+                          </div>
+                          <div>
+                            <span className="text-slate-400 block">Target:</span>
+                            <span className="font-mono font-bold text-slate-900">{sc.target}</span>
+                          </div>
+                          <div>
+                            <span className="text-slate-400 block">Realisasi Aktual:</span>
+                            <span className="font-mono font-bold text-emerald-700">{sc.actual}</span>
+                          </div>
+                        </div>
+                        <div className="text-[11px] text-slate-600 italic bg-white p-2 rounded border border-slate-150">
+                          <strong className="text-slate-700 font-semibold not-italic">Lessons Learned: </strong>
+                          {sc.lessonsLearned}
                         </div>
                       </div>
                     ))}
@@ -1139,17 +1482,25 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ setActiv
                 </div>
               )}
 
-              {/* Signoff / Verification footer */}
-              <div className="pt-6 border-t border-slate-200 grid grid-cols-2 gap-8 text-xs text-slate-600">
+              {/* 5. Lembar Pengesahan & Tanda Tangan Resmi */}
+              <div className="pt-6 border-t-2 border-slate-200 grid grid-cols-2 gap-8 text-xs text-slate-600 print-break-inside-avoid">
                 <div>
-                  <p className="font-medium">Disiapkan Oleh:</p>
-                  <p className="font-bold text-slate-900 mt-0.5">Tim Analitik & Kualitas Konten HortiFlow</p>
-                  <div className="h-12 border-b border-slate-300 w-48 mt-4" />
+                  <p className="font-medium text-slate-500">Disiapkan & Diverifikasi Oleh:</p>
+                  <p className="font-bold text-slate-900 mt-0.5 text-sm">Tim Analitik & Kualitas Konten HortiFlow</p>
+                  <p className="text-[11px] text-slate-400">Subdirektorat Pengelolaan Opini & Media Informasi</p>
+                  <div className="h-14 border-b border-slate-400 w-56 mt-4" />
+                  <p className="text-[11px] text-slate-500 mt-1">
+                    Tanggal: {new Date().toLocaleDateString('id-ID', { dateStyle: 'long' })}
+                  </p>
                 </div>
                 <div className="text-right flex flex-col items-end">
-                  <p className="font-medium">Mengetahui & Menyetujui:</p>
-                  <p className="font-bold text-slate-900 mt-0.5">Koordinator Publikasi & Distribusi</p>
-                  <div className="h-12 border-b border-slate-300 w-48 mt-4" />
+                  <p className="font-medium text-slate-500">Mengetahui & Menyetujui:</p>
+                  <p className="font-bold text-slate-900 mt-0.5 text-sm">Koordinator Publikasi & Distribusi Hortikultura</p>
+                  <p className="text-[11px] text-slate-400">Direktorat Jenderal Hortikultura - Kementan RI</p>
+                  <div className="h-14 border-b border-slate-400 w-56 mt-4" />
+                  <p className="text-[11px] text-slate-500 mt-1">
+                    Jakarta, {new Date().toLocaleDateString('id-ID', { dateStyle: 'long' })}
+                  </p>
                 </div>
               </div>
             </div>

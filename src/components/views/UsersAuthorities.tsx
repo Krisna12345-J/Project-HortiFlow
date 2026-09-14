@@ -18,6 +18,9 @@ import {
   User,
   Clock,
   X,
+  Copy,
+  Check,
+  ExternalLink,
 } from 'lucide-react';
 import { useHortiFlow } from '../../context/HortiFlowContext';
 import { ActiveView } from '../layout/Sidebar';
@@ -28,7 +31,17 @@ interface UsersAuthoritiesProps {
 }
 
 export const UsersAuthorities: React.FC<UsersAuthoritiesProps> = ({ setActiveView }) => {
-  const { users, units, delegations, currentUser, setCurrentUserId, addDelegation } = useHortiFlow();
+  const {
+    users,
+    units,
+    delegations,
+    currentUser,
+    setCurrentUserId,
+    addDelegation,
+    revokeDelegation,
+    updateUserRole,
+    updateUserStatus,
+  } = useHortiFlow();
 
   const [activeTab, setActiveTab] = useState<'pengguna' | 'roles' | 'units' | 'delegasi' | 'sesi'>('pengguna');
   const [searchQuery, setSearchQuery] = useState('');
@@ -40,6 +53,27 @@ export const UsersAuthorities: React.FC<UsersAuthoritiesProps> = ({ setActiveVie
   const [delegationScope, setDelegationScope] = useState<'ALL' | 'CAMPAIGN' | 'UNIT'>('CAMPAIGN');
   const [delegationRiskCeiling, setDelegationRiskCeiling] = useState<'LOW' | 'MEDIUM'>('MEDIUM');
   const [delegationReason, setDelegationReason] = useState('');
+
+  // RBAC Audit & State Modals
+  const [rbacFeedback, setRbacFeedback] = useState<{
+    message: string;
+    correlationId: string;
+    timestamp: string;
+  } | null>(null);
+  const [copiedFeedbackCorr, setCopiedFeedbackCorr] = useState(false);
+
+  // Edit Role Modal State
+  const [editRoleUser, setEditRoleUser] = useState<UserType | null>(null);
+  const [selectedNewRole, setSelectedNewRole] = useState<UserRole>('EDITOR');
+  const [roleReason, setRoleReason] = useState('');
+
+  // Status Change Modal State
+  const [statusUser, setStatusUser] = useState<UserType | null>(null);
+  const [statusReason, setStatusReason] = useState('');
+
+  // Revoke Delegation Modal State
+  const [revokeTarget, setRevokeTarget] = useState<{ id: string; name: string } | null>(null);
+  const [revokeReasonText, setRevokeReasonText] = useState('');
 
   // Filtering users
   const filteredUsers = users.filter((u) => {
@@ -106,6 +140,70 @@ export const UsersAuthorities: React.FC<UsersAuthoritiesProps> = ({ setActiveVie
     alert('Delegasi wewenang berhasil diaktifkan dengan batas risiko terkontrol!');
   };
 
+  const handleRoleChangeSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editRoleUser) return;
+    const res = updateUserRole(editRoleUser.id, selectedNewRole, roleReason);
+    if (res.success) {
+      setRbacFeedback({
+        message: `Hak akses peran ${editRoleUser.fullName} dialihkan menjadi [${selectedNewRole}]. Log audit ISO/IEC 27001 append-only telah dibuat.`,
+        correlationId: res.correlationId || '',
+        timestamp: new Date().toISOString(),
+      });
+      setEditRoleUser(null);
+      setRoleReason('');
+      if (selectedUser?.id === editRoleUser.id) {
+        setSelectedUser((prev) => (prev ? { ...prev, role: selectedNewRole } : null));
+      }
+    } else {
+      alert(res.error || 'Gagal memperbarui peran.');
+    }
+  };
+
+  const handleStatusChangeSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!statusUser) return;
+    const targetStatus = !statusUser.isActive;
+    const res = updateUserStatus(statusUser.id, targetStatus, statusReason);
+    if (res.success) {
+      setRbacFeedback({
+        message: `Status otorisasi akun ${statusUser.fullName} diubah menjadi [${targetStatus ? 'AKTIF' : 'DINONAKTIFKAN (SUSPENDED)'}]. Rekaman audit integritas ISO tercatat secara append-only.`,
+        correlationId: res.correlationId || '',
+        timestamp: new Date().toISOString(),
+      });
+      setStatusUser(null);
+      setStatusReason('');
+      if (selectedUser?.id === statusUser.id) {
+        setSelectedUser((prev) => (prev ? { ...prev, isActive: targetStatus } : null));
+      }
+    } else {
+      alert(res.error || 'Gagal mengubah status.');
+    }
+  };
+
+  const handleRevokeDelegationSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!revokeTarget) return;
+    const res = revokeDelegation(revokeTarget.id, revokeReasonText);
+    if (res.success) {
+      setRbacFeedback({
+        message: `Wewenang delegasi persetujuan untuk ${revokeTarget.name} berhasil dicabut seketika. Rekaman audit append-only tersimpan.`,
+        correlationId: res.correlationId || '',
+        timestamp: new Date().toISOString(),
+      });
+      setRevokeTarget(null);
+      setRevokeReasonText('');
+    } else {
+      alert(res.error || 'Gagal mencabut wewenang delegasi.');
+    }
+  };
+
+  const copyFeedbackCorrelationId = (corrId: string) => {
+    navigator.clipboard.writeText(corrId);
+    setCopiedFeedbackCorr(true);
+    setTimeout(() => setCopiedFeedbackCorr(false), 2000);
+  };
+
   return (
     <div className="space-y-6 lg:space-y-8 pb-12" id="users-authorities-view">
       {/* 1. Header */}
@@ -142,6 +240,56 @@ export const UsersAuthorities: React.FC<UsersAuthoritiesProps> = ({ setActiveVie
           </div>
         </div>
       </div>
+
+      {/* ISO/IEC 27001 RBAC Audit Notification Banner */}
+      {rbacFeedback && (
+        <div className="bg-slate-900 text-white p-4 rounded-xl shadow-md border border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2">
+              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                AUDIT TRAIL APPEND-ONLY
+              </span>
+              <span className="text-xs text-slate-200">{rbacFeedback.message}</span>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 text-[11px] font-mono text-slate-400">
+              <span>Correlation ID:</span>
+              <span className="text-emerald-300 font-bold bg-slate-800 px-2 py-0.5 rounded border border-slate-700 select-all">
+                {rbacFeedback.correlationId}
+              </span>
+              <button
+                type="button"
+                onClick={() => copyFeedbackCorrelationId(rbacFeedback.correlationId)}
+                className="px-2 py-0.5 hover:bg-slate-800 text-slate-300 hover:text-white rounded border border-slate-700 transition-colors flex items-center gap-1 cursor-pointer"
+                title="Salin Correlation ID"
+              >
+                {copiedFeedbackCorr ? (
+                  <Check className="w-3 h-3 text-emerald-400" />
+                ) : (
+                  <Copy className="w-3 h-3" />
+                )}
+                <span className="text-[10px]">{copiedFeedbackCorr ? 'Tersalin' : 'Salin UUID'}</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => setActiveView('audit')}
+              className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+              <span>Buka di Audit Log</span>
+            </button>
+            <button
+              onClick={() => setRbacFeedback(null)}
+              className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors cursor-pointer"
+              title="Tutup Notifikasi"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* 2. Top Summary KPI Cards matching Section 22 */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
@@ -252,18 +400,50 @@ export const UsersAuthorities: React.FC<UsersAuthoritiesProps> = ({ setActiveVie
                     <td className="p-3.5 text-slate-700">{u.unitName}</td>
                     <td className="p-3.5 text-slate-600">{u.position}</td>
                     <td className="p-3.5">
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
-                        Aktif
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                          u.isActive
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : 'bg-rose-100 text-rose-800'
+                        }`}
+                      >
+                        {u.isActive ? 'Aktif' : 'Ditangguhkan'}
                       </span>
                     </td>
                     <td className="p-3.5 font-mono text-slate-500 text-[11px]">11 Sep 2026, 09:12</td>
                     <td className="p-3.5 text-right">
-                      <button
-                        onClick={() => setSelectedUser(u)}
-                        className="px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-lg text-xs transition-colors"
-                      >
-                        Detail Profil
-                      </button>
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          onClick={() => {
+                            setEditRoleUser(u);
+                            setSelectedNewRole(u.role);
+                            setRoleReason('');
+                          }}
+                          className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 font-semibold rounded-lg text-[11px] transition-colors cursor-pointer"
+                          title="Ubah peran RBAC & hak akses"
+                        >
+                          Ubah Role
+                        </button>
+                        <button
+                          onClick={() => {
+                            setStatusUser(u);
+                            setStatusReason('');
+                          }}
+                          className={`px-2 py-1 rounded-lg text-[11px] font-semibold border transition-colors cursor-pointer ${
+                            u.isActive
+                              ? 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100'
+                              : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                          }`}
+                        >
+                          {u.isActive ? 'Suspend' : 'Aktifkan'}
+                        </button>
+                        <button
+                          onClick={() => setSelectedUser(u)}
+                          className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-lg text-[11px] transition-colors cursor-pointer"
+                        >
+                          Profil
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -371,6 +551,7 @@ export const UsersAuthorities: React.FC<UsersAuthoritiesProps> = ({ setActiveVie
                   <th className="p-3.5">Masa Berlaku</th>
                   <th className="p-3.5">Alasan Pelimpahan</th>
                   <th className="p-3.5">Status</th>
+                  <th className="p-3.5 text-right">Aksi</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -389,9 +570,28 @@ export const UsersAuthorities: React.FC<UsersAuthoritiesProps> = ({ setActiveVie
                     </td>
                     <td className="p-3.5 text-slate-600">{d.reason}</td>
                     <td className="p-3.5">
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
-                        Aktif
-                      </span>
+                      {d.isRevoked ? (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-200">
+                          Dicabut (Revoked)
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                          Aktif
+                        </span>
+                      )}
+                    </td>
+                    <td className="p-3.5 text-right">
+                      {!d.isRevoked && (
+                        <button
+                          onClick={() => {
+                            setRevokeTarget({ id: d.id, name: d.delegateeName });
+                            setRevokeReasonText('');
+                          }}
+                          className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-[11px] font-semibold transition-colors cursor-pointer"
+                        >
+                          Cabut Wewenang
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -586,6 +786,209 @@ export const UsersAuthorities: React.FC<UsersAuthoritiesProps> = ({ setActiveVie
                 className="px-4 py-2 bg-emerald-600 text-white rounded-lg font-bold shadow-xs hover:bg-emerald-700"
               >
                 Aktifkan Delegasi
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* 11. Edit User Role Modal (RBAC Mutation) */}
+      {editRoleUser && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150">
+          <form
+            onSubmit={handleRoleChangeSubmit}
+            className="bg-white w-full max-w-md rounded-2xl shadow-xl p-6 border border-slate-200 space-y-4 text-xs"
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div>
+                <h3 className="font-bold text-sm text-slate-900">Ubah Peran Pengguna (RBAC)</h3>
+                <p className="text-[11px] text-slate-500">Mutasi wewenang operasional pengguna dalam sistem</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditRoleUser(null)}
+                className="text-slate-400 hover:text-slate-600 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-1">
+              <span className="font-bold text-slate-800 block">{editRoleUser.fullName}</span>
+              <span className="text-[11px] text-slate-500 font-mono block">{editRoleUser.email}</span>
+              <span className="text-[11px] text-slate-600 block">Unit: {editRoleUser.unitName}</span>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Peran Baru (Target Role) *</label>
+                <select
+                  value={selectedNewRole}
+                  onChange={(e) => setSelectedNewRole(e.target.value as UserRole)}
+                  className="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg font-bold text-slate-800"
+                >
+                  <option value="PENGUSUL">PENGUSUL - Usulan & Draft Ide Konten</option>
+                  <option value="PLANNER">PLANNER - Triase, Briefing & Alokasi PIC</option>
+                  <option value="EDITOR">EDITOR - Penyusunan Narasi & Desain Aset</option>
+                  <option value="REVIEWER">REVIEWER - Verifikasi Fakta & Pemeriksaan Mutu</option>
+                  <option value="APPROVER">APPROVER - Pengesahan Bersegel Digital</option>
+                  <option value="PUBLISHER">PUBLISHER - Penyiaran & Bukti Siar Resmi</option>
+                  <option value="ARCHIVIST">ARCHIVIST - Pengarsipan Permanen</option>
+                  <option value="ADMINISTRATOR">ADMINISTRATOR - Otoritas Penuh & RBAC</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">
+                  Nomor SK / Dasar Administratif Mutasi (Audit Trail Wajib) *
+                </label>
+                <textarea
+                  required
+                  rows={3}
+                  value={roleReason}
+                  onChange={(e) => setRoleReason(e.target.value)}
+                  placeholder="Contoh: SK Dirjen Hortikultura No. 142/KPTS/2026 tentang Penugasan Redaktur Pelaksana..."
+                  className="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg text-xs"
+                />
+                <span className="text-[10px] text-slate-500 block mt-1">
+                  * Aksi ini akan dicatat ke Audit Log ISO/IEC 27001 dengan Correlation ID unik.
+                </span>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setEditRoleUser(null)}
+                className="px-4 py-2 border border-slate-200 text-slate-600 rounded-lg font-semibold cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="submit"
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold shadow-xs cursor-pointer"
+              >
+                Simpan Mutasi RBAC
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* 12. Toggle Account Status Modal */}
+      {statusUser && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150">
+          <form
+            onSubmit={handleStatusChangeSubmit}
+            className="bg-white w-full max-w-md rounded-2xl shadow-xl p-6 border border-slate-200 space-y-4 text-xs"
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <h3 className="font-bold text-sm text-slate-900">
+                {statusUser.isActive ? 'Tangguhkan (Suspend) Akun' : 'Aktifkan Kembali Akun'}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setStatusUser(null)}
+                className="text-slate-400 hover:text-slate-600 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="bg-amber-50 border border-amber-200 p-3 rounded-xl text-amber-900 space-y-1">
+              <span className="font-bold block">Peringatan Tindakan Kritis:</span>
+              <p className="text-[11px] leading-relaxed">
+                {statusUser.isActive
+                  ? `Menangguhkan akun ${statusUser.fullName} akan mencabut hak login dan memblokir seluruh tindakan editorial yang sedang berjalan.`
+                  : `Mengaktifkan kembali akun ${statusUser.fullName} akan memulihkan otorisasi akses sesuai peran aktif.`}
+              </p>
+            </div>
+
+            <div>
+              <label className="font-bold text-slate-700 block mb-1">
+                Alasan Administratif Perubahan Status *
+              </label>
+              <textarea
+                required
+                rows={3}
+                value={statusReason}
+                onChange={(e) => setStatusReason(e.target.value)}
+                placeholder="Contoh: Cuti besar luar tanggungan negara / Rotasi staf antar kementerian..."
+                className="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg text-xs"
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setStatusUser(null)}
+                className="px-4 py-2 border border-slate-200 text-slate-600 rounded-lg font-semibold cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="submit"
+                className={`px-4 py-2 text-white rounded-lg font-bold shadow-xs cursor-pointer ${
+                  statusUser.isActive ? 'bg-rose-600 hover:bg-rose-700' : 'bg-emerald-600 hover:bg-emerald-700'
+                }`}
+              >
+                {statusUser.isActive ? 'Tangguhkan Akun Sekarang' : 'Aktifkan Akun'}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* 13. Revoke Delegation Modal */}
+      {revokeTarget && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150">
+          <form
+            onSubmit={handleRevokeDelegationSubmit}
+            className="bg-white w-full max-w-md rounded-2xl shadow-xl p-6 border border-slate-200 space-y-4 text-xs"
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <h3 className="font-bold text-sm text-slate-900">Cabut Delegasi Wewenang</h3>
+              <button
+                type="button"
+                onClick={() => setRevokeTarget(null)}
+                className="text-slate-400 hover:text-slate-600 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <p className="text-slate-600 leading-relaxed">
+              Anda akan mencabut hak delegasi wewenang persetujuan yang diberikan kepada{' '}
+              <span className="font-bold text-slate-900">{revokeTarget.name}</span>.
+            </p>
+
+            <div>
+              <label className="font-bold text-slate-700 block mb-1">
+                Alasan Pencabutan Delegasi *
+              </label>
+              <textarea
+                required
+                rows={3}
+                value={revokeReasonText}
+                onChange={(e) => setRevokeReasonText(e.target.value)}
+                placeholder="Contoh: Pejabat definitif telah kembali berdinas / Pergantian agenda mendesak..."
+                className="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg text-xs"
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setRevokeTarget(null)}
+                className="px-4 py-2 border border-slate-200 text-slate-600 rounded-lg font-semibold cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="submit"
+                className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg font-bold shadow-xs cursor-pointer"
+              >
+                Cabut Wewenang Sekarang
               </button>
             </div>
           </form>

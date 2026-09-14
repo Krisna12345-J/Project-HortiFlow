@@ -42,6 +42,7 @@ export interface User {
   position: string;
   isActive: boolean;
   avatarUrl?: string;
+  nip?: string;
 }
 
 export interface Unit {
@@ -49,6 +50,7 @@ export interface Unit {
   code: string;
   name: string;
   description: string;
+  echelonLevel?: string;
 }
 
 export interface Campaign {
@@ -122,6 +124,8 @@ export interface ContentPackage {
   rowVersion: number;
   createdAt: string;
   updatedAt: string;
+  channels?: ChannelType[];
+  targetChannels?: ChannelType[];
 }
 
 export interface BriefVersion {
@@ -203,6 +207,7 @@ export interface ChannelVariant {
   };
   readinessStatus: 'DRAFT' | 'READY' | 'BLOCKED';
   updatedAt: string;
+  assignedAssetIds?: string[];
 }
 
 export interface DigitalAsset {
@@ -223,6 +228,10 @@ export interface DigitalAsset {
   uploadedByName: string;
   createdAt: string;
   rights: AssetRights;
+  assetType?: AssetType;
+  fileName?: string;
+  scanStatus?: string;
+  licenseType?: LicenseType;
 }
 
 export interface AssetRights {
@@ -266,6 +275,11 @@ export interface ReviewFinding {
   verifiedClosedById?: string;
   verifiedClosedByName?: string;
   createdAt: string;
+  title?: string;
+  description?: string;
+  recommendation?: string;
+  resolutionNotes?: string;
+  reviewerName?: string;
 }
 
 export interface ApprovalManifest {
@@ -280,6 +294,12 @@ export interface ApprovalManifest {
   status: 'PENDING' | 'APPROVED' | 'CHANGES_REQUESTED' | 'REJECTED' | 'REVOKED_BY_MUTATION';
   createdAt: string;
   action?: ApprovalAction;
+  versionNumber?: number;
+  decision?: ApprovalDecisionType;
+  decidedByName?: string;
+  decidedAt?: string;
+  signature?: string;
+  decisionNotes?: string;
 }
 
 export interface ApprovalAction {
@@ -317,9 +337,15 @@ export interface PublicationPlan {
   scheduledTime: string;
   embargoUntil?: string;
   idempotencyKey: string;
-  status: 'SCHEDULED' | 'PUBLISHING' | 'SUCCESS' | 'FAILED' | 'WITHDRAWN';
+  status: 'SCHEDULED' | 'PUBLISHING' | 'SUCCESS' | 'FAILED' | 'WITHDRAWN' | 'TAKEDOWN';
   retryCount: number;
   proof?: PublicationProof;
+  channel?: ChannelType;
+  liveUrl?: string;
+  publishedAt?: string;
+  failureReason?: string;
+  takedownReason?: string;
+  externalPostId?: string;
 }
 
 export interface PublicationProof {
@@ -336,6 +362,7 @@ export interface PublicationProof {
   isTakedown: boolean;
   takedownReason?: string;
   takedownAt?: string;
+  channel?: ChannelType;
 }
 
 export interface MetricSnapshot {
@@ -348,6 +375,8 @@ export interface MetricSnapshot {
   clicks: number;
   cycleTimeHours: number;
   recordedAt: string;
+  impressions?: number;
+  lessonsLearned?: string;
 }
 
 export interface ArchivePackage {
@@ -362,6 +391,8 @@ export interface ArchivePackage {
   archivedAt: string;
 }
 
+export type AuditSeverity = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+
 export interface AuditEvent {
   id: string;
   correlationId: string;
@@ -372,10 +403,15 @@ export interface AuditEvent {
   targetType: string;
   targetId: string;
   targetTitle?: string;
+  targetEntity?: string;
   diffDescription?: string;
   reason?: string;
   timestamp: string;
   ipAddress?: string;
+  packageId?: string;
+  severity?: AuditSeverity;
+  integrityHash?: string;
+  metadata?: Record<string, any>;
 }
 
 export interface AppNotification {
@@ -397,7 +433,15 @@ export interface AppNotification {
   createdAt: string;
 }
 
-export type ApprovalDecisionType = 'APPROVED' | 'CHANGES_REQUESTED' | 'REJECTED';
+export type ApprovalDecisionType =
+  | 'PENDING'
+  | 'APPROVED'
+  | 'APPROVE'
+  | 'CHANGES_REQUESTED'
+  | 'REQUEST_CHANGES'
+  | 'HOLD'
+  | 'REJECTED'
+  | 'REJECT';
 export type FindingSeverity = 'BLOCKING' | 'MAJOR' | 'MINOR' | 'SUGGESTION';
 export type ReviewCategory =
   | 'FACT_CHECK'

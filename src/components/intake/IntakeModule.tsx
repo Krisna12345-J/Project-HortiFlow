@@ -22,95 +22,16 @@ import {
 import { useHortiFlow } from '../../context/HortiFlowContext';
 import { ContentType, RiskLevel, ChannelType } from '../../types';
 import { ActiveView } from '../layout/Sidebar';
+import { useIntakeForm } from '../../hooks/useIntakeForm';
 
 interface IntakeModuleProps {
   setActiveView: (view: ActiveView) => void;
 }
 
-// Institutional Quick Templates
-const INTAKE_PRESETS = [
-  {
-    name: 'Bawang Merah TSS',
-    unit: 'Dit. Sayuran & Tanaman Obat',
-    title: 'Akselerasi Diseminasi Benih Bawang Merah TSS untuk Stabilisasi Pasokan',
-    contentType: 'INFOGRAPHIC' as ContentType,
-    goal: 'Meningkatkan adopsi teknologi benih True Shallot Seed (TSS) di kalangan petani sentra Brebes dan Nganjuk guna menekan biaya produksi hingga 40%.',
-    audience: 'Kelompok Tani Bawang Merah, Dinas Pertanian Daerah, Penyuluh Lapangan',
-    topics: 'Bawang Merah, Benih TSS, Efisiensi Biaya, Stabilisasi Pangan',
-    urgency: 'HIGH' as const,
-    riskLevel: 'MEDIUM' as RiskLevel,
-    sources: 'Data Neraca Komoditas Ditjen Hortikultura Agustus 2026, SK Mentan No. 214/2025',
-    channels: ['INSTAGRAM', 'WEBSITE', 'FACEBOOK'] as ChannelType[],
-    resources: ['Naskah & Riset Data', 'Desain Infografis Visual', 'Verifikasi Ahli Peneliti'],
-  },
-  {
-    name: 'Krisis Hama Lalat Buah',
-    unit: 'Dit. Perlindungan Hortikultura',
-    title: 'Kesiapsiagaan Darurat Pengendalian Hama Lalat Buah pada Sentra Mangga & Cabai',
-    contentType: 'PRESS_RELEASE' as ContentType,
-    goal: 'Memberikan panduan cepat penanganan serangan OPT lalat buah Bactrocera dorsalis di musim peralihan untuk mencegah gagal panen dan penolakan ekspor.',
-    audience: 'Petani Mangga & Cabai, Eksportir Buah, Petugas POPT',
-    topics: 'Perlindungan Hortikultura, OPT Lalat Buah, Sanitasi Lahan, Standar Karantina',
-    urgency: 'URGENT' as const,
-    riskLevel: 'HIGH' as RiskLevel,
-    sources: 'Laporan Monitoring Balai Proteksi Tanaman Wilayah II, Standar ISPM No. 26',
-    channels: ['INTERNAL_PORTAL', 'WEBSITE', 'INSTAGRAM'] as ChannelType[],
-    resources: ['Naskah Siaran Pers', 'Liputan Foto Lapangan', 'Verifikasi Ahli Peneliti'],
-  },
-  {
-    name: 'Sertifikasi Benih Cabai',
-    unit: 'Balai Standarisasi Benih Hortikultura',
-    title: 'Sosialisasi Standar Sertifikasi & Pengawasan Mutu Benih Cabai Rawit Unggul',
-    contentType: 'SHORT_VIDEO' as ContentType,
-    goal: 'Edukasi visual kepada petani dan produsen benih lokal mengenai tata cara permohonan sertifikasi benih cabai bersertifikat bebas virus kuning.',
-    audience: 'Penangkar Benih Lokal, Petani Cabai, Asosiasi Agribisnis Cabai',
-    topics: 'Sertifikasi Benih, Cabai Rawit Unggul, Bebas Virus, Mutu Benih',
-    urgency: 'MEDIUM' as const,
-    riskLevel: 'LOW' as RiskLevel,
-    sources: 'Permentan No. 12/2024 tentang Sertifikasi Benih Hortikultura',
-    channels: ['TIKTOK', 'INSTAGRAM', 'WEBSITE'] as ChannelType[],
-    resources: ['Naskah & Riset Data', 'Produksi Video Pendek / Reels', 'Desain Infografis Visual'],
-  },
-  {
-    name: 'Ekspor Manggis & Durian',
-    unit: 'Dit. Pengolahan & Pemasaran Hasil Hortikultura',
-    title: 'Panduan Protokol Fitosanitari Akses Pasar Ekspor Manggis dan Durian ke Tiongkok',
-    contentType: 'ARTICLE' as ContentType,
-    goal: 'Mendorong perluasan ekspor hortikultura segar dengan memberikan kepastian informasi terkait registrasi kebun (GAP) dan packing house tersertifikasi.',
-    audience: 'Eksportir Hortikultura, GAPOKTAN Binaan, Atase Perdagangan',
-    topics: 'Ekspor Buah Tropis, Registrasi Kebun, Protokol Fitosanitari, Pasar Tiongkok',
-    urgency: 'HIGH' as const,
-    riskLevel: 'HIGH' as RiskLevel,
-    sources: 'Protokol Ekspor Bilateral GACC - Kementan RI 2025/2026',
-    channels: ['WEBSITE', 'INTERNAL_PORTAL', 'INSTAGRAM'] as ChannelType[],
-    resources: ['Naskah & Riset Data', 'Desain Infografis Visual', 'Verifikasi Ahli Peneliti'],
-  },
-];
-
-const AVAILABLE_CHANNELS: { id: ChannelType; name: string }[] = [
-  { id: 'WEBSITE', name: 'Portal Web Hortikultura' },
-  { id: 'INSTAGRAM', name: 'Instagram & Reels (@ditjenhorti)' },
-  { id: 'TIKTOK', name: 'TikTok Edukasi (@hortikultura.id)' },
-  { id: 'INTERNAL_PORTAL', name: 'Portal Berita & Siaran Pers Internal' },
-  { id: 'FACEBOOK', name: 'Komunitas Facebook & Petani' },
-];
-
-const AVAILABLE_RESOURCES = [
-  'Naskah & Riset Data',
-  'Desain Infografis Visual',
-  'Produksi Video Pendek / Reels',
-  'Liputan Foto Lapangan',
-  'Verifikasi Ahli Peneliti',
-];
-
 export const IntakeModule: React.FC<IntakeModuleProps> = ({ setActiveView }) => {
   const {
     requests,
-    submitContentRequest,
     triageRequest,
-    findDuplicates,
-    units,
-    campaigns,
     packages,
     setSelectedPackageId,
     currentUser,
@@ -124,29 +45,6 @@ export const IntakeModule: React.FC<IntakeModuleProps> = ({ setActiveView }) => 
   const [filterUnit, setFilterUnit] = useState<string>('ALL');
   const [searchFilter, setSearchFilter] = useState<string>('');
 
-  // Form states
-  const [title, setTitle] = useState('');
-  const [contentType, setContentType] = useState<ContentType>('ARTICLE');
-  const [communicationGoal, setCommunicationGoal] = useState('');
-  const [targetAudience, setTargetAudience] = useState('');
-  const [topicsInput, setTopicsInput] = useState('');
-  const [urgency, setUrgency] = useState<'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT'>('MEDIUM');
-  const [riskLevel, setRiskLevel] = useState<RiskLevel>('LOW');
-  const [requestedDeadline, setRequestedDeadline] = useState('2026-09-30T17:00');
-  const [initialSources, setInitialSources] = useState('');
-  const [unitId, setUnitId] = useState(currentUser.unitId);
-  const [campaignId, setCampaignId] = useState('');
-
-  // Enhanced fields
-  const [selectedChannels, setSelectedChannels] = useState<ChannelType[]>([
-    'WEBSITE',
-    'INSTAGRAM',
-  ]);
-  const [selectedResources, setSelectedResources] = useState<string[]>([
-    'Naskah & Riset Data',
-    'Desain Infografis Visual',
-  ]);
-
   // Triage modal / action states
   const [triageAction, setTriageAction] = useState<
     'ACCEPT' | 'REQUEST_INFO' | 'MERGE' | 'HOLD' | 'REJECT' | null
@@ -158,70 +56,56 @@ export const IntakeModule: React.FC<IntakeModuleProps> = ({ setActiveView }) => 
   const [clarificationInput, setClarificationInput] = useState('');
   const [showClarificationInput, setShowClarificationInput] = useState(false);
 
-  // Live duplicate detection
-  const currentTopics = useMemo(
-    () => topicsInput.split(',').map((t) => t.trim()).filter(Boolean),
-    [topicsInput]
-  );
-  const detectedDuplicates = useMemo(() => {
-    return title.trim().length > 6 ? findDuplicates(title, currentTopics) : [];
-  }, [title, currentTopics, findDuplicates]);
-
-  // Readiness / Quality Index (0 - 100%)
-  const readinessIndex = useMemo(() => {
-    let score = 0;
-    if (title.trim().length >= 15) score += 20;
-    else if (title.trim().length > 0) score += 10;
-
-    if (communicationGoal.trim().length >= 25) score += 25;
-    else if (communicationGoal.trim().length > 0) score += 10;
-
-    if (targetAudience.trim().length > 0) score += 15;
-    if (currentTopics.length >= 1) score += 10;
-    if (initialSources.trim().length >= 10) score += 15;
-    if (selectedChannels.length > 0) score += 10;
-    if (selectedResources.length > 0) score += 5;
-
-    return Math.min(score, 100);
-  }, [
+  // Hook for intake form state, validation, duplication detection, and index quality calculation
+  const {
     title,
+    setTitle,
+    contentType,
+    setContentType,
     communicationGoal,
+    setCommunicationGoal,
     targetAudience,
-    currentTopics,
+    setTargetAudience,
+    topicsInput,
+    setTopicsInput,
+    urgency,
+    setUrgency,
+    riskLevel,
+    setRiskLevel,
+    requestedDeadline,
+    setRequestedDeadline,
     initialSources,
+    setInitialSources,
+    campaignId,
+    setCampaignId,
     selectedChannels,
     selectedResources,
-  ]);
+    detectedDuplicates,
+    readinessIndex,
+    toggleChannel,
+    toggleResource,
+    handleApplyPreset,
+    handleResetForm,
+    handleSubmit,
+    presets: INTAKE_PRESETS,
+    availableChannels: AVAILABLE_CHANNELS,
+    availableResources: AVAILABLE_RESOURCES,
+    campaigns,
+  } = useIntakeForm({
+    onSuccess: ({ request, duplicates }) => {
+      setShowForm(false);
+      setSelectedReqId(request.id);
+      handleResetForm();
 
-  const handleApplyPreset = (preset: typeof INTAKE_PRESETS[0]) => {
-    setTitle(preset.title);
-    setContentType(preset.contentType);
-    setCommunicationGoal(preset.goal);
-    setTargetAudience(preset.audience);
-    setTopicsInput(preset.topics);
-    setUrgency(preset.urgency);
-    setRiskLevel(preset.riskLevel);
-    setInitialSources(preset.sources);
-    setSelectedChannels(preset.channels);
-    setSelectedResources(preset.resources);
-
-    const matchingUnit = units.find((u) => u.name.includes(preset.unit.split(' ')[1] || ''));
-    if (matchingUnit) {
-      setUnitId(matchingUnit.id);
-    }
-  };
-
-  const toggleChannel = (chId: ChannelType) => {
-    setSelectedChannels((prev) =>
-      prev.includes(chId) ? prev.filter((c) => c !== chId) : [...prev, chId]
-    );
-  };
-
-  const toggleResource = (resName: string) => {
-    setSelectedResources((prev) =>
-      prev.includes(resName) ? prev.filter((r) => r !== resName) : [...prev, resName]
-    );
-  };
+      if (duplicates && duplicates.length > 0 && duplicates[0]?.package) {
+        alert(
+          `Permintaan berhasil diajukan dengan tiket ${request.ticketNumber}. Ditemukan potensi kemiripan dengan ${duplicates[0].package.packageNumber} (${duplicates[0].score}% similar).`
+        );
+      } else {
+        alert(`Permintaan berhasil diajukan dengan nomor tiket ${request.ticketNumber}.`);
+      }
+    },
+  });
 
   const handleCreateSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -229,45 +113,7 @@ export const IntakeModule: React.FC<IntakeModuleProps> = ({ setActiveView }) => 
       alert('Judul dan tujuan komunikasi wajib diisi.');
       return;
     }
-
-    const selectedUnit = units.find((u) => u.id === unitId) || units[0] || { id: 'UN-01', name: 'Ditjen Hortikultura' };
-    const selectedCampaign = campaigns.find((c) => c.id === campaignId);
-
-    const { request, duplicates } = submitContentRequest({
-      title,
-      contentType,
-      communicationGoal,
-      targetAudience,
-      topics: currentTopics.length > 0 ? currentTopics : ['Hortikultura'],
-      urgency,
-      riskLevel,
-      requestedDeadline: new Date(requestedDeadline).toISOString(),
-      initialSources,
-      unitId: selectedUnit.id,
-      unitName: selectedUnit.name,
-      requesterId: currentUser?.id || 'USR-01',
-      requesterName: currentUser?.fullName || 'Pengguna',
-      campaignId: selectedCampaign?.id,
-      campaignName: selectedCampaign?.name,
-      targetChannels: selectedChannels,
-      resourceNeeds: selectedResources,
-      readinessScore: readinessIndex,
-    });
-
-    setShowForm(false);
-    setSelectedReqId(request.id);
-    setTitle('');
-    setCommunicationGoal('');
-    setInitialSources('');
-    setTopicsInput('');
-
-    if (duplicates && duplicates.length > 0 && duplicates[0]?.package) {
-      alert(
-        `Permintaan berhasil diajukan dengan tiket ${request.ticketNumber}. Ditemukan potensi kemiripan dengan ${duplicates[0].package.packageNumber} (${duplicates[0].score}% similar).`
-      );
-    } else {
-      alert(`Permintaan berhasil diajukan dengan nomor tiket ${request.ticketNumber}.`);
-    }
+    handleSubmit(e);
   };
 
   const handleExecuteTriage = () => {

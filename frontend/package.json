@@ -1,14 +1,14 @@
 {
-  "name": "hortiflow-root",
+  "name": "hortiflow",
   "private": true,
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite frontend --port=3000 --host=0.0.0.0",
-    "build": "vite build frontend --outDir ../dist --emptyOutDir",
-    "preview": "vite preview frontend",
-    "clean": "rm -rf dist frontend/dist server.js",
-    "lint": "cd frontend && tsc --noEmit"
+    "dev": "vite --port=3000 --host=0.0.0.0",
+    "build": "vite build",
+    "preview": "vite preview",
+    "clean": "rm -rf dist",
+    "lint": "tsc --noEmit"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",

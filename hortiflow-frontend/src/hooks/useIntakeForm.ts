@@ -17,63 +17,23 @@ export interface IntakePreset {
   resources: string[];
 }
 
+// Data Dummy Presets Khusus Hortikultura
 export const INTAKE_PRESETS: IntakePreset[] = [
   {
     name: 'Bawang Merah TSS',
     unit: 'Dit. Sayuran & Tanaman Obat',
     title: 'Akselerasi Diseminasi Benih Bawang Merah TSS untuk Stabilisasi Pasokan',
     contentType: 'INFOGRAPHIC',
-    goal: 'Meningkatkan adopsi teknologi benih True Shallot Seed (TSS) di kalangan petani sentra Brebes dan Nganjuk guna menekan biaya produksi hingga 40%.',
+    goal: 'Meningkatkan adopsi teknologi benih True Shallot Seed (TSS) di kalangan petani.',
     audience: 'Kelompok Tani Bawang Merah, Dinas Pertanian Daerah, Penyuluh Lapangan',
-    topics: 'Bawang Merah, Benih TSS, Efisiensi Biaya, Stabilisasi Pangan',
+    topics: 'Bawang Merah, Benih TSS, Efisiensi Biaya',
     urgency: 'HIGH',
     riskLevel: 'MEDIUM',
-    sources: 'Data Neraca Komoditas Ditjen Hortikultura Agustus 2026, SK Mentan No. 214/2025',
+    sources: 'Data Neraca Komoditas Ditjen Hortikultura Agustus 2026',
     channels: ['INSTAGRAM', 'WEBSITE', 'FACEBOOK'],
     resources: ['Naskah & Riset Data', 'Desain Infografis Visual', 'Verifikasi Ahli Peneliti'],
   },
-  {
-    name: 'Krisis Hama Lalat Buah',
-    unit: 'Dit. Perlindungan Hortikultura',
-    title: 'Kesiapsiagaan Darurat Pengendalian Hama Lalat Buah pada Sentra Mangga & Cabai',
-    contentType: 'PRESS_RELEASE',
-    goal: 'Memberikan panduan cepat penanganan serangan OPT lalat buah Bactrocera dorsalis di musim peralihan untuk mencegah gagal panen dan penolakan ekspor.',
-    audience: 'Petani Mangga & Cabai, Eksportir Buah, Petugas POPT',
-    topics: 'Perlindungan Hortikultura, OPT Lalat Buah, Sanitasi Lahan, Standar Karantina',
-    urgency: 'URGENT',
-    riskLevel: 'HIGH',
-    sources: 'Laporan Monitoring Balai Proteksi Tanaman Wilayah II, Standar ISPM No. 26',
-    channels: ['INTERNAL_PORTAL', 'WEBSITE', 'INSTAGRAM'],
-    resources: ['Naskah Siaran Pers', 'Liputan Foto Lapangan', 'Verifikasi Ahli Peneliti'],
-  },
-  {
-    name: 'Sertifikasi Benih Cabai',
-    unit: 'Balai Standarisasi Benih Hortikultura',
-    title: 'Sosialisasi Standar Sertifikasi & Pengawasan Mutu Benih Cabai Rawit Unggul',
-    contentType: 'SHORT_VIDEO',
-    goal: 'Edukasi visual kepada petani dan produsen benih lokal mengenai tata cara permohonan sertifikasi benih cabai bersertifikat bebas virus kuning.',
-    audience: 'Penangkar Benih Lokal, Petani Cabai, Asosiasi Agribisnis Cabai',
-    topics: 'Sertifikasi Benih, Cabai Rawit Unggul, Bebas Virus, Mutu Benih',
-    urgency: 'MEDIUM',
-    riskLevel: 'LOW',
-    sources: 'Permentan No. 12/2024 tentang Sertifikasi Benih Hortikultura',
-    channels: ['TIKTOK', 'INSTAGRAM', 'WEBSITE'],
-    resources: ['Naskah & Riset Data', 'Produksi Video Pendek / Reels', 'Desain Infografis Visual'],
-  },
-  {
-    name: 'Ekspor Manggis & Durian',
-    unit: 'Dit. Pengolahan & Pemasaran Hasil Hortikultura',
-    title: 'Panduan Protokol Fitosanitari Akses Pasar Ekspor Manggis dan Durian ke Tiongkok',
-    contentType: 'ARTICLE',
-    goal: 'Mendorong perluasan ekspor hortikultura segar dengan memberikan kepastian informasi terkait registrasi kebun (GAP) dan packing house tersertifikasi.',
-    audience: 'Eksportir Hortikultura, GAPOKTAN Binaan, Atase Perdagangan',
-    topics: 'Ekspor Buah Tropis, Registrasi Kebun, Protokol Fitosanitari, Pasar Tiongkok',
-    urgency: 'HIGH',
-    riskLevel: 'HIGH',
-    sources: 'Protokol Ekspor Bilateral GACC - Kementan RI 2025/2026',
-    channels: ['WEBSITE', 'INTERNAL_PORTAL', 'INSTAGRAM'],
-    resources: ['Naskah & Riset Data', 'Desain Infografis Visual', 'Verifikasi Ahli Peneliti'],
-  },
+  // Anda bisa menambahkan preset lain di sini...
 ];
 
 export const AVAILABLE_CHANNELS: { id: ChannelType; name: string }[] = [
@@ -92,6 +52,7 @@ export const AVAILABLE_RESOURCES = [
   'Verifikasi Ahli Peneliti',
 ];
 
+// Struktur Error Formulir
 export interface FormErrors {
   title?: string;
   communicationGoal?: string;
@@ -111,6 +72,7 @@ export interface UseIntakeFormOptions {
 }
 
 export function useIntakeForm(options: UseIntakeFormOptions = {}) {
+  // Hubungkan dengan Global Context HORTIFLOW
   const {
     currentUser,
     units,
@@ -120,6 +82,7 @@ export function useIntakeForm(options: UseIntakeFormOptions = {}) {
     setSelectedPackageId,
   } = useHortiFlow();
 
+  // 1. State Nilai Input Form (Local State)
   const [title, setTitle] = useState('');
   const [contentType, setContentType] = useState<ContentType>('ARTICLE');
   const [communicationGoal, setCommunicationGoal] = useState('');
@@ -131,32 +94,27 @@ export function useIntakeForm(options: UseIntakeFormOptions = {}) {
     options.defaultDeadline || '2026-09-30T17:00'
   );
   const [initialSources, setInitialSources] = useState('');
-  const [unitId, setUnitId] = useState(currentUser.unitId);
+  const [unitId, setUnitId] = useState(currentUser?.unitId || '');
   const [campaignId, setCampaignId] = useState('');
-  const [selectedChannels, setSelectedChannels] = useState<ChannelType[]>([
-    'WEBSITE',
-    'INSTAGRAM',
-  ]);
-  const [selectedResources, setSelectedResources] = useState<string[]>([
-    'Naskah & Riset Data',
-    'Desain Infografis Visual',
-  ]);
+  const [selectedChannels, setSelectedChannels] = useState<ChannelType[]>(['WEBSITE', 'INSTAGRAM']);
+  const [selectedResources, setSelectedResources] = useState<string[]>(['Naskah & Riset Data', 'Desain Infografis Visual']);
 
+  // 2. State untuk Error Validasi
   const [errors, setErrors] = useState<FormErrors>({});
   const [submittedTicket, setSubmittedTicket] = useState<SubmittedTicketResult | null>(null);
 
-  // Parse topics list from comma-separated string
+  // Parsing topik (dipisah koma)
   const currentTopics = useMemo(
     () => topicsInput.split(',').map((t) => t.trim()).filter(Boolean),
     [topicsInput]
   );
 
-  // Real-time duplicate detection
+  // Pendeteksi Duplikasi Secara Real-time
   const detectedDuplicates = useMemo(() => {
     return title.trim().length > 6 ? findDuplicates(title, currentTopics) : [];
   }, [title, currentTopics, findDuplicates]);
 
-  // Real-time Readiness & Quality Index Calculation (0 - 100%)
+  // Kalkulasi Indeks Kesiapan (Readiness Score: 0 - 100%)
   const readinessIndex = useMemo(() => {
     let score = 0;
     if (title.trim().length >= 15) score += 20;
@@ -172,15 +130,7 @@ export function useIntakeForm(options: UseIntakeFormOptions = {}) {
     if (selectedResources.length > 0) score += 5;
 
     return Math.min(score, 100);
-  }, [
-    title,
-    communicationGoal,
-    targetAudience,
-    currentTopics,
-    initialSources,
-    selectedChannels,
-    selectedResources,
-  ]);
+  }, [title, communicationGoal, targetAudience, currentTopics, initialSources, selectedChannels, selectedResources]);
 
   const readinessStatus = useMemo(() => {
     if (readinessIndex >= 80) return { label: 'Sangat Lengkap', color: 'emerald' as const };
@@ -188,21 +138,20 @@ export function useIntakeForm(options: UseIntakeFormOptions = {}) {
     return { label: 'Perlu Detail', color: 'slate' as const };
   }, [readinessIndex]);
 
-  // Channel toggling
+  // 3. Fungsi untuk Mengubah Nilai Form Khusus (Toggle Multi-Select)
   const toggleChannel = useCallback((chId: ChannelType) => {
     setSelectedChannels((prev) =>
       prev.includes(chId) ? prev.filter((c) => c !== chId) : [...prev, chId]
     );
   }, []);
 
-  // Resource toggling
   const toggleResource = useCallback((resName: string) => {
     setSelectedResources((prev) =>
       prev.includes(resName) ? prev.filter((r) => r !== resName) : [...prev, resName]
     );
   }, []);
 
-  // Quick preset autofill handler
+  // Handler Autofill (Isi Form Otomatis dari Preset)
   const handleApplyPreset = useCallback(
     (preset: IntakePreset) => {
       setTitle(preset.title);
@@ -220,13 +169,12 @@ export function useIntakeForm(options: UseIntakeFormOptions = {}) {
       if (matchingUnit) {
         setUnitId(matchingUnit.id);
       }
-      // Clear previous field errors on preset selection
       setErrors({});
     },
     [units]
   );
 
-  // Form validation function
+  // 4. Fungsi Validasi Form (Memastikan Tidak Kosong)
   const validateForm = useCallback((): boolean => {
     const nextErrors: FormErrors = {};
     if (!title.trim()) {
@@ -240,10 +188,10 @@ export function useIntakeForm(options: UseIntakeFormOptions = {}) {
     }
 
     setErrors(nextErrors);
-    return Object.keys(nextErrors).length === 0;
+    return Object.keys(nextErrors).length === 0; // Return true jika lolos tanpa error
   }, [title, communicationGoal]);
 
-  // Reset form to default states
+  // Mengembalikan form ke keadaan kosong
   const handleResetForm = useCallback(() => {
     setTitle('');
     setCommunicationGoal('');
@@ -256,24 +204,25 @@ export function useIntakeForm(options: UseIntakeFormOptions = {}) {
     setSelectedChannels(['WEBSITE', 'INSTAGRAM']);
     setSelectedResources(['Naskah & Riset Data', 'Desain Infografis Visual']);
     setCampaignId('');
-    setUnitId(currentUser.unitId);
+    setUnitId(currentUser?.unitId || '');
     setErrors({});
     setSubmittedTicket(null);
-  }, [currentUser.unitId]);
+  }, [currentUser?.unitId]);
 
-  // Submit handler
+  // Eksekusi Submit (Submit Action)
   const handleSubmit = useCallback(
     (e?: FormEvent) => {
       if (e) e.preventDefault();
 
+      // Panggil fungsi validate() di sini
       if (!validateForm()) {
         return { success: false, error: 'Validasi formulir gagal. Periksa kolom yang wajib diisi.' };
       }
 
-      const selectedUnit =
-        units.find((u) => u.id === unitId) || units[0] || { id: 'UN-01', name: 'Ditjen Hortikultura' };
+      const selectedUnit = units.find((u) => u.id === unitId) || units[0] || { id: 'UN-01', name: 'Ditjen Hortikultura' };
       const selectedCampaign = campaigns.find((c) => c.id === campaignId);
 
+      // Simpan Ke Context
       const { request, duplicates } = submitContentRequest({
         title,
         contentType,
@@ -298,12 +247,8 @@ export function useIntakeForm(options: UseIntakeFormOptions = {}) {
       const ticketResult: SubmittedTicketResult = {
         ticketNumber: request.ticketNumber,
         id: request.id,
-        duplicateScore:
-          duplicates && duplicates.length > 0 && duplicates[0] ? duplicates[0].score : undefined,
-        duplicatePkgNum:
-          duplicates && duplicates.length > 0 && duplicates[0]?.package
-            ? duplicates[0].package.packageNumber
-            : undefined,
+        duplicateScore: duplicates && duplicates.length > 0 && duplicates[0] ? duplicates[0].score : undefined,
+        duplicatePkgNum: duplicates && duplicates.length > 0 && duplicates[0]?.package ? duplicates[0].package.packageNumber : undefined,
       };
 
       setSubmittedTicket(ticketResult);
@@ -311,58 +256,25 @@ export function useIntakeForm(options: UseIntakeFormOptions = {}) {
 
       return { success: true, request, duplicates, ticketResult };
     },
-    [
-      validateForm,
-      units,
-      unitId,
-      campaigns,
-      campaignId,
-      submitContentRequest,
-      title,
-      contentType,
-      communicationGoal,
-      targetAudience,
-      currentTopics,
-      urgency,
-      riskLevel,
-      requestedDeadline,
-      initialSources,
-      currentUser,
-      selectedChannels,
-      selectedResources,
-      readinessIndex,
-      options,
-    ]
+    [validateForm, units, unitId, campaigns, campaignId, submitContentRequest, title, contentType, communicationGoal, targetAudience, currentTopics, urgency, riskLevel, requestedDeadline, initialSources, currentUser, selectedChannels, selectedResources, readinessIndex, options]
   );
 
+  // 5. Kembalikan Semua Object State dan Fungsi
   return {
     // Form fields
-    title,
-    setTitle,
-    contentType,
-    setContentType,
-    communicationGoal,
-    setCommunicationGoal,
-    targetAudience,
-    setTargetAudience,
-    topicsInput,
-    setTopicsInput,
-    urgency,
-    setUrgency,
-    riskLevel,
-    setRiskLevel,
-    requestedDeadline,
-    setRequestedDeadline,
-    initialSources,
-    setInitialSources,
-    unitId,
-    setUnitId,
-    campaignId,
-    setCampaignId,
-    selectedChannels,
-    setSelectedChannels,
-    selectedResources,
-    setSelectedResources,
+    title, setTitle,
+    contentType, setContentType,
+    communicationGoal, setCommunicationGoal,
+    targetAudience, setTargetAudience,
+    topicsInput, setTopicsInput,
+    urgency, setUrgency,
+    riskLevel, setRiskLevel,
+    requestedDeadline, setRequestedDeadline,
+    initialSources, setInitialSources,
+    unitId, setUnitId,
+    campaignId, setCampaignId,
+    selectedChannels, setSelectedChannels,
+    selectedResources, setSelectedResources,
 
     // Derived values & Analysis
     currentTopics,

@@ -1,4 +1,40 @@
+/**
+ * HORTIFLOW - Core Type Definitions & Interfaces
+ * Sistem Informasi Manajemen Konten Digital
+ * Direktorat Jenderal Hortikultura - Kementerian Pertanian RI
+ */
+
+// ==========================================
+// 1. Core Union Types & Enums
+// ==========================================
+
+export type ContentType =
+  | 'artikel'
+  | 'infografis'
+  | 'video'
+  | 'dokumen'
+  | 'ARTICLE'
+  | 'INFOGRAPHIC'
+  | 'SHORT_VIDEO'
+  | 'PRESS_RELEASE'
+  | 'SOCIAL_CAROUSEL'
+  | 'POLICY_BRIEF';
+
+export type RiskLevel =
+  | 'Low'
+  | 'Medium'
+  | 'High'
+  | 'LOW'
+  | 'MEDIUM'
+  | 'HIGH'
+  | 'CRITICAL';
+
 export type LifecycleStatus =
+  | 'Draft'
+  | 'Review'
+  | 'Approved'
+  | 'Published'
+  | 'Archived'
   | 'IDE'
   | 'TRIAGED'
   | 'BRIEF_READY'
@@ -16,10 +52,17 @@ export type LifecycleStatus =
   | 'WITHDRAWN'
   | 'ARCHIVED';
 
-export type RiskLevel = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 export type Classification = 'PUBLIC' | 'INTERNAL' | 'RESTRICTED' | 'CONFIDENTIAL';
-export type ContentType = 'ARTICLE' | 'INFOGRAPHIC' | 'SHORT_VIDEO' | 'PRESS_RELEASE' | 'SOCIAL_CAROUSEL' | 'POLICY_BRIEF';
-export type ChannelType = 'WEBSITE' | 'INSTAGRAM' | 'FACEBOOK' | 'TIKTOK' | 'YOUTUBE' | 'X' | 'LINKEDIN' | 'INTERNAL_PORTAL';
+
+export type ChannelType =
+  | 'WEBSITE'
+  | 'INSTAGRAM'
+  | 'FACEBOOK'
+  | 'TIKTOK'
+  | 'YOUTUBE'
+  | 'X'
+  | 'LINKEDIN'
+  | 'INTERNAL_PORTAL';
 
 export type UserRole =
   | 'PENGUSUL'
@@ -30,6 +73,38 @@ export type UserRole =
   | 'PUBLISHER'
   | 'ARCHIVIST'
   | 'ADMINISTRATOR';
+
+export type AuditSeverity = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+
+export type ApprovalDecisionType =
+  | 'PENDING'
+  | 'APPROVED'
+  | 'APPROVE'
+  | 'CHANGES_REQUESTED'
+  | 'REQUEST_CHANGES'
+  | 'HOLD'
+  | 'REJECTED'
+  | 'REJECT';
+
+export type FindingSeverity = 'BLOCKING' | 'MAJOR' | 'MINOR' | 'SUGGESTION';
+
+export type ReviewCategory =
+  | 'FACT_CHECK'
+  | 'SUBJECT_MATTER'
+  | 'EDITORIAL'
+  | 'BRAND_IDENTITY'
+  | 'LEGAL_PRIVACY'
+  | 'RIGHTS_CHECK'
+  | 'ACCESSIBILITY'
+  | 'PRIVACY'
+  | 'RIGHTS';
+
+export type AssetType = 'IMAGE' | 'VIDEO' | 'AUDIO' | 'ILLUSTRATION' | 'INFOGRAPHIC' | 'DOCUMENT';
+export type LicenseType = 'CC_BY' | 'ALL_RIGHTS_RESERVED' | 'GOVERNMENT_PUBLIC_DOMAIN' | 'PURCHASED_STOCK' | 'INTERNAL_PRODUCTION';
+
+// ==========================================
+// 2. User & Organizational Entities
+// ==========================================
 
 export interface User {
   id: string;
@@ -72,8 +147,49 @@ export interface Campaign {
   };
 }
 
-export interface ContentRequest {
+// ==========================================
+// 3. Content Request & Intake
+// ==========================================
+
+/**
+ * Interface untuk pengajuan usulan konten
+ */
+export interface RequestContent {
   id: string;
+  ticketNumber?: string;
+  judul?: string;
+  title?: string;
+  deskripsi?: string;
+  type?: ContentType;
+  contentType?: ContentType;
+  communicationGoal?: string;
+  targetAudience?: string;
+  topics?: string[];
+  urgency?: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT' | 'Low' | 'Medium' | 'High';
+  riskLevel?: RiskLevel;
+  risk?: RiskLevel;
+  requestedDeadline?: string;
+  initialSources?: string;
+  unitId?: string;
+  unitName?: string;
+  pemohon?: string;
+  requesterId?: string;
+  requesterName?: string;
+  campaignId?: string;
+  campaignName?: string;
+  status?: 'SUBMITTED' | 'IN_TRIAGE' | 'ACCEPTED' | 'REJECTED' | 'MERGED' | 'ON_HOLD' | 'Draft' | 'Review' | 'Approved';
+  triageNotes?: string;
+  createdPackageId?: string;
+  tanggalPengajuan?: string;
+  createdAt?: string;
+  targetChannels?: ChannelType[];
+  resourceNeeds?: string[];
+  readinessScore?: number;
+  keyMessages?: string[];
+  clarificationNotes?: string;
+}
+
+export type ContentRequest = RequestContent & {
   ticketNumber: string;
   title: string;
   contentType: ContentType;
@@ -88,33 +204,38 @@ export interface ContentRequest {
   unitName: string;
   requesterId: string;
   requesterName: string;
-  campaignId?: string;
-  campaignName?: string;
   status: 'SUBMITTED' | 'IN_TRIAGE' | 'ACCEPTED' | 'REJECTED' | 'MERGED' | 'ON_HOLD';
-  triageNotes?: string;
-  createdPackageId?: string;
   createdAt: string;
-  targetChannels?: ChannelType[];
-  resourceNeeds?: string[];
-  readinessScore?: number;
-  keyMessages?: string[];
-  clarificationNotes?: string;
-}
+};
 
+// ==========================================
+// 4. Content Package (Paket Konten Utama)
+// ==========================================
+
+/**
+ * Interface utama paket konten HORTIFLOW
+ */
 export interface ContentPackage {
   id: string;
+  judul?: string;
+  title: string;
+  deskripsi?: string;
+  type?: ContentType;
+  contentType: ContentType;
+  status?: LifecycleStatus;
+  lifecycleStatus: LifecycleStatus;
+  risk?: RiskLevel;
+  riskLevel: RiskLevel;
+  tanggalDibuat?: string;
+  pembuat?: string;
+  ownerId: string;
+  ownerName: string;
   packageNumber: string; // e.g. PKG-2026-0012
   requestId?: string;
   campaignId?: string;
   campaignName?: string;
   unitId: string;
   unitName: string;
-  ownerId: string;
-  ownerName: string;
-  title: string;
-  contentType: ContentType;
-  lifecycleStatus: LifecycleStatus;
-  riskLevel: RiskLevel;
   classification: Classification;
   deadline: string;
   hasBlocker: boolean;
@@ -127,6 +248,10 @@ export interface ContentPackage {
   channels?: ChannelType[];
   targetChannels?: ChannelType[];
 }
+
+// ==========================================
+// 5. Brief, Source, Claims, Narrative & Assets
+// ==========================================
 
 export interface BriefVersion {
   id: string;
@@ -167,7 +292,7 @@ export interface Claim {
   sourceTitle: string;
   claimText: string;
   claimCategory: 'STATISTIC' | 'DATE' | 'QUOTE' | 'POLICY' | 'VARIETY_NAME' | 'LOCATION';
-  contextLocation: string; // e.g. "Paragraf 2, kalimat 1"
+  contextLocation: string;
   isVerified: boolean;
   verifiedById?: string;
   verifiedByName?: string;
@@ -195,7 +320,7 @@ export interface ChannelVariant {
   packageId: string;
   channel: ChannelType;
   title?: string;
-  format: string; // e.g. "Carousel 10 slides", "Reels 60s", "Artikel Website", "Thread 5 Tweet"
+  format: string;
   aspectRatio: '1:1' | '9:16' | '16:9' | '4:5' | 'Standard Text';
   caption: string;
   hashtags: string[];
@@ -216,7 +341,7 @@ export interface DigitalAsset {
   title: string;
   fileType: 'IMAGE' | 'VIDEO' | 'AUDIO' | 'ILLUSTRATION' | 'INFOGRAPHIC' | 'DOCUMENT';
   mimeType: string;
-  fileSize: number; // in bytes
+  fileSize: number;
   storageKey: string;
   previewUrl: string;
   checksumSha256: string;
@@ -259,6 +384,10 @@ export interface TaskItem {
   dependencies?: string[];
   createdAt: string;
 }
+
+// ==========================================
+// 6. Review & Approval System
+// ==========================================
 
 export interface ReviewFinding {
   id: string;
@@ -323,9 +452,14 @@ export interface ApprovalDelegation {
   riskCeiling: 'LOW' | 'MEDIUM';
   startDate: string;
   endDate: string;
+  validUntil?: string;
   reason: string;
   isRevoked: boolean;
 }
+
+// ==========================================
+// 7. Publication, Proof & Metrics
+// ==========================================
 
 export interface PublicationPlan {
   id: string;
@@ -391,28 +525,43 @@ export interface ArchivePackage {
   archivedAt: string;
 }
 
-export type AuditSeverity = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+// ==========================================
+// 8. Audit Trail & Logging
+// ==========================================
 
-export interface AuditEvent {
+/**
+ * Interface untuk merekam log aktivitas pengguna (AuditLog)
+ */
+export interface AuditLog {
   id: string;
-  correlationId: string;
+  timestamp: string;
+  aksi?: string;
+  action: string;
+  user?: string | User;
   actorId: string;
   actorName: string;
   actorRole: UserRole;
-  action: string;
   targetType: string;
   targetId: string;
   targetTitle?: string;
   targetEntity?: string;
   diffDescription?: string;
   reason?: string;
-  timestamp: string;
   ipAddress?: string;
   packageId?: string;
   severity?: AuditSeverity;
   integrityHash?: string;
+  correlationId?: string;
   metadata?: Record<string, any>;
 }
+
+export type AuditEvent = AuditLog & {
+  correlationId: string;
+};
+
+// ==========================================
+// 9. Notifications & Aliases
+// ==========================================
 
 export interface AppNotification {
   id: string;
@@ -433,30 +582,6 @@ export interface AppNotification {
   createdAt: string;
 }
 
-export type ApprovalDecisionType =
-  | 'PENDING'
-  | 'APPROVED'
-  | 'APPROVE'
-  | 'CHANGES_REQUESTED'
-  | 'REQUEST_CHANGES'
-  | 'HOLD'
-  | 'REJECTED'
-  | 'REJECT';
-export type FindingSeverity = 'BLOCKING' | 'MAJOR' | 'MINOR' | 'SUGGESTION';
-export type ReviewCategory =
-  | 'FACT_CHECK'
-  | 'SUBJECT_MATTER'
-  | 'EDITORIAL'
-  | 'BRAND_IDENTITY'
-  | 'LEGAL_PRIVACY'
-  | 'RIGHTS_CHECK'
-  | 'ACCESSIBILITY'
-  | 'PRIVACY'
-  | 'RIGHTS';
-
-export type AssetType = 'IMAGE' | 'VIDEO' | 'AUDIO' | 'ILLUSTRATION' | 'INFOGRAPHIC' | 'DOCUMENT';
-export type LicenseType = 'CC_BY' | 'ALL_RIGHTS_RESERVED' | 'GOVERNMENT_PUBLIC_DOMAIN' | 'PURCHASED_STOCK' | 'INTERNAL_PRODUCTION';
 export type ContentMetric = MetricSnapshot;
 export type PublicationRecord = PublicationPlan;
 export type ProductionTask = TaskItem;
-

@@ -1,0 +1,6 @@
+{
+  "name": "HORTIFLOW",
+  "description": "Sistem Informasi Manajemen Konten Digital mandiri untuk mengelola seluruh siklus hidup konten organisasi secara terpusat.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

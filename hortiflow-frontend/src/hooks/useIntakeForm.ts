@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, type FormEvent } from 'react';
 import { useHortiFlow } from '../context/HortiFlowContext';
-import { ContentType, RiskLevel, ChannelType, ContentRequest, ContentPackage } from '../types';
+import { ContentType, RiskLevel, ChannelType, RequestContent, ContentPackage } from '../types';
 
 export interface IntakePreset {
   name: string;
@@ -67,7 +67,7 @@ export interface SubmittedTicketResult {
 }
 
 export interface UseIntakeFormOptions {
-  onSuccess?: (result: { request: ContentRequest; duplicates: { package: ContentPackage; score: number }[] }) => void;
+  onSuccess?: (result: { request: RequestContent; duplicates: { package: ContentPackage; score: number }[] }) => void;
   defaultDeadline?: string;
 }
 
@@ -77,7 +77,7 @@ export function useIntakeForm(options: UseIntakeFormOptions = {}) {
     currentUser,
     units,
     campaigns,
-    submitContentRequest,
+    submitRequestContent,
     findDuplicates,
     setSelectedPackageId,
   } = useHortiFlow();
@@ -223,7 +223,7 @@ export function useIntakeForm(options: UseIntakeFormOptions = {}) {
       const selectedCampaign = campaigns.find((c) => c.id === campaignId);
 
       // Simpan Ke Context
-      const { request, duplicates } = submitContentRequest({
+      const { request, duplicates } = submitRequestContent({
         title,
         contentType,
         communicationGoal,
@@ -256,7 +256,7 @@ export function useIntakeForm(options: UseIntakeFormOptions = {}) {
 
       return { success: true, request, duplicates, ticketResult };
     },
-    [validateForm, units, unitId, campaigns, campaignId, submitContentRequest, title, contentType, communicationGoal, targetAudience, currentTopics, urgency, riskLevel, requestedDeadline, initialSources, currentUser, selectedChannels, selectedResources, readinessIndex, options]
+    [validateForm, units, unitId, campaigns, campaignId, submitRequestContent, title, contentType, communicationGoal, targetAudience, currentTopics, urgency, riskLevel, requestedDeadline, initialSources, currentUser, selectedChannels, selectedResources, readinessIndex, options]
   );
 
   // 5. Kembalikan Semua Object State dan Fungsi

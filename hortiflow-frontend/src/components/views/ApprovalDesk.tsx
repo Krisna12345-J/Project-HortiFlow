@@ -33,8 +33,8 @@ export const ApprovalDesk: React.FC<ApprovalDeskProps> = ({ setActiveView }) => 
   const [activeDecisionPkgId, setActiveDecisionPkgId] = useState<string | null>(null);
   const [selectedDecision, setSelectedDecision] = useState<ApprovalDecisionType>('APPROVED');
 
-  const pendingPackages = packages.filter((p) => p.lifecycleStatus === 'APPROVAL_PENDING');
-  const approvedPackages = packages.filter(
+  const pendingPackages = (packages || []).filter((p) => p.lifecycleStatus === 'APPROVAL_PENDING');
+  const approvedPackages = (packages || []).filter(
     (p) => p.lifecycleStatus === 'APPROVED' || p.lifecycleStatus === 'SCHEDULED' || p.lifecycleStatus === 'PUBLISHED'
   );
 
@@ -103,8 +103,8 @@ export const ApprovalDesk: React.FC<ApprovalDeskProps> = ({ setActiveView }) => 
               const manifest = approvalManifests.find(
                 (m) => m.packageId === pkg.id && m.decision === 'PENDING'
               );
-              const claims = getClaimsForPackage(pkg.id);
-              const reviews = getReviewsForPackage(pkg.id);
+              const claims = getClaimsForPackage(pkg.id) || [];
+              const reviews = getReviewsForPackage(pkg.id) || [];
 
               const unverifiedClaims = claims.filter((c) => !c.isVerified);
               const blockingFindings = reviews.filter(

@@ -32,7 +32,7 @@ function AppContent() {
           activeView={activeView}
           setActiveView={(view) => {
             setActiveView(view);
-            setSidebarOpen(false); // Close mobile drawer on selection
+            setSidebarOpen(false); // Tutup drawer mobile saat menu dipilih
           }}
           isOpen={sidebarOpen}
           setIsOpen={setSidebarOpen}

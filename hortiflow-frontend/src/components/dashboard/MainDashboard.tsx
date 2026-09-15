@@ -29,29 +29,32 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ setActiveView }) =
   const { packages, requests, auditLogs, setSelectedPackageId } = useHortiFlow();
 
   // Metric counts (Quantitative stats)
-  const inProductionCount = packages.filter(
+  const safePackages = packages || [];
+  const safeRequests = requests || [];
+
+  const inProductionCount = safePackages.filter(
     (p) => p.lifecycleStatus === 'IN_PRODUCTION' || p.lifecycleStatus === 'ASSIGNED'
   ).length;
-  const inReviewCount = packages.filter(
+  const inReviewCount = safePackages.filter(
     (p) => p.lifecycleStatus === 'IN_REVIEW' || p.lifecycleStatus === 'CHANGES_REQUESTED'
   ).length;
-  const pendingApprovalCount = packages.filter(
+  const pendingApprovalCount = safePackages.filter(
     (p) => p.lifecycleStatus === 'APPROVAL_PENDING'
   ).length;
-  const scheduledCount = packages.filter((p) => p.lifecycleStatus === 'SCHEDULED').length;
-  const publishedCount = packages.filter((p) => p.lifecycleStatus === 'PUBLISHED').length;
-  const publishFailedCount = packages.filter((p) => p.lifecycleStatus === 'PUBLISH_FAILED').length;
-  const newRequestsCount = requests.filter((r) => r.status === 'SUBMITTED').length;
+  const scheduledCount = safePackages.filter((p) => p.lifecycleStatus === 'SCHEDULED').length;
+  const publishedCount = safePackages.filter((p) => p.lifecycleStatus === 'PUBLISHED').length;
+  const publishFailedCount = safePackages.filter((p) => p.lifecycleStatus === 'PUBLISH_FAILED').length;
+  const newRequestsCount = safeRequests.filter((r) => r.status === 'SUBMITTED').length;
 
   // High risk & blockers
-  const highRiskPackages = packages.filter(
+  const highRiskPackages = safePackages.filter(
     (p) => p.riskLevel === 'HIGH' || p.riskLevel === 'CRITICAL'
   );
-  const blockedPackages = packages.filter((p) => p.hasBlocker);
+  const blockedPackages = safePackages.filter((p) => p.hasBlocker);
 
   // Urgent deadlines (within 7 days)
   const now = new Date().getTime();
-  const urgentPackages = packages
+  const urgentPackages = safePackages
     .filter((p) => p.lifecycleStatus !== 'PUBLISHED' && p.lifecycleStatus !== 'ARCHIVED')
     .map((p) => {
       const deadlineTime = new Date(p.deadline).getTime();

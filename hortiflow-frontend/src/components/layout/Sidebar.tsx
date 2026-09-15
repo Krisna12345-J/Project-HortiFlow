@@ -59,10 +59,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
   // Kotak Masuk: 3
   // Meja Persetujuan: 1
   // Publikasi & Bukti: 1 Gagal
-  const pendingIntakeCount = requests.filter((r) => r.status === 'SUBMITTED').length || 2;
-  const pendingApprovalCount = packages.filter((p) => p.lifecycleStatus === 'APPROVAL_PENDING').length || 1;
-  const publishFailedCount = packages.filter((p) => p.lifecycleStatus === 'PUBLISH_FAILED').length || 1;
-  const openFindingsCount = reviewFindings.filter((f) => f.status !== 'VERIFIED_CLOSED').length || 3;
+  const pendingIntakeCount = (requests || []).filter((r) => r.status === 'SUBMITTED').length || 2;
+  const pendingApprovalCount = (packages || []).filter((p) => p.lifecycleStatus === 'APPROVAL_PENDING').length || 1;
+  const publishFailedCount = (packages || []).filter((p) => p.lifecycleStatus === 'PUBLISH_FAILED').length || 1;
+  const openFindingsCount = (reviewFindings || []).filter((f) => f.status !== 'VERIFIED_CLOSED').length || 3;
 
   const menuSections = [
     {

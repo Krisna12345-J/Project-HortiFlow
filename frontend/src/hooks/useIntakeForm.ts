@@ -4,7 +4,9 @@ import { ContentType, RiskLevel, ChannelType, RequestContent, ContentPackage } f
 
 export interface IntakePreset {
   name: string;
+  badgeLabel?: string;
   unit: string;
+  unitId?: string;
   title: string;
   contentType: ContentType;
   goal: string;
@@ -17,14 +19,16 @@ export interface IntakePreset {
   resources: string[];
 }
 
-// Data Dummy Presets Khusus Hortikultura
+// Data Dummy Presets Khusus Hortikultura (4 Pilihan Template Cepat)
 export const INTAKE_PRESETS: IntakePreset[] = [
   {
     name: 'Bawang Merah TSS',
-    unit: 'Dit. Sayuran & Tanaman Obat',
+    badgeLabel: 'INFOGRAPHIC',
+    unit: 'Direktorat Sayuran & Tanaman Obat',
+    unitId: 'unit-1',
     title: 'Akselerasi Diseminasi Benih Bawang Merah TSS untuk Stabilisasi Pasokan',
     contentType: 'INFOGRAPHIC',
-    goal: 'Meningkatkan adopsi teknologi benih True Shallot Seed (TSS) di kalangan petani.',
+    goal: 'Meningkatkan adopsi teknologi benih True Shallot Seed (TSS) di kalangan petani guna menekan biaya dan meningkatkan produktivitas.',
     audience: 'Kelompok Tani Bawang Merah, Dinas Pertanian Daerah, Penyuluh Lapangan',
     topics: 'Bawang Merah, Benih TSS, Efisiensi Biaya',
     urgency: 'HIGH',
@@ -33,7 +37,54 @@ export const INTAKE_PRESETS: IntakePreset[] = [
     channels: ['INSTAGRAM', 'WEBSITE', 'FACEBOOK'],
     resources: ['Naskah & Riset Data', 'Desain Infografis Visual', 'Verifikasi Ahli Peneliti'],
   },
-  // Anda bisa menambahkan preset lain di sini...
+  {
+    name: 'Pengendalian Hama Cabai',
+    badgeLabel: 'VIDEO',
+    unit: 'Direktorat Sayuran & Tanaman Obat',
+    unitId: 'unit-1',
+    title: 'Video Edukasi Praktis: Pengendalian Terpadu Hama & Penyakit Cabai Musim Hujan',
+    contentType: 'SHORT_VIDEO',
+    goal: 'Memberikan panduan audio-visual mengenai identifikasi dini dan pengendalian hayati hama thrips dan penyakit antraknosa pada tanaman cabai.',
+    audience: 'Petani Cabai Rawit & Cabai Merah, Petugas POPT, Komunitas Hortikultura',
+    topics: 'Cabai Merah, Pengendalian Hama, Video Edukasi, Musim Hujan',
+    urgency: 'HIGH',
+    riskLevel: 'LOW',
+    sources: 'Petunjuk Lapangan Balai Proteksi Tanaman & Ditjen Hortikultura 2026',
+    channels: ['TIKTOK', 'INSTAGRAM', 'WEBSITE'],
+    resources: ['Produksi Video Pendek / Reels', 'Liputan Foto Lapangan', 'Verifikasi Ahli Peneliti'],
+  },
+  {
+    name: 'SOP Pasca-panen Melon',
+    badgeLabel: 'ARTIKEL',
+    unit: 'Direktorat Buah & Florikultura',
+    unitId: 'unit-2',
+    title: 'SOP Pasca-panen & Manajemen Sortasi Mutu Melon Premium Siap Ekspor',
+    contentType: 'ARTICLE',
+    goal: 'Mendorong standarisasi penanganan pasca-panen melon hidroponik & greenhouse untuk memenuhi spesifikasi pasar modern dan ekspor.',
+    audience: 'Petani Melon, Pelaku Usaha Agribisnis Buah Nusantara, Asosiasi Eksportir',
+    topics: 'Melon Premium, SOP Pasca-panen, Standar Ekspor, Sortasi Mutu',
+    urgency: 'MEDIUM',
+    riskLevel: 'LOW',
+    sources: 'Standar Operasional Prosedur Dit. Buah & Florikultura No. 12/2025',
+    channels: ['WEBSITE', 'INTERNAL_PORTAL', 'FACEBOOK'],
+    resources: ['Naskah & Riset Data', 'Liputan Foto Lapangan'],
+  },
+  {
+    name: 'Panduan Pemupukan Organik',
+    badgeLabel: 'PANDUAN/PDF',
+    unit: 'Balai Pengujian Standar Mutu Benih',
+    unitId: 'unit-3',
+    title: 'Buku Panduan Teknis Pemupukan Organik Berimbang pada Lahan Hortikultura',
+    contentType: 'POLICY_BRIEF',
+    goal: 'Menyosialisasikan formulasi dan takaran pupuk organik hayati ramah lingkungan guna menekan biaya operasional pupuk anorganik.',
+    audience: 'Penyuluh Pertanian Lapangan (PPL), Poktan Hortikultura, Pegiat Pertanian Ramah Lingkungan',
+    topics: 'Pupuk Organik, Kesuburan Tanah, Ramah Lingkungan, Hortikultura Berkelanjutan',
+    urgency: 'MEDIUM',
+    riskLevel: 'LOW',
+    sources: 'Rekomendasi Balai Riset Pertanian & Standardisasi Hortikultura 2026',
+    channels: ['WEBSITE', 'INTERNAL_PORTAL', 'INSTAGRAM'],
+    resources: ['Naskah & Riset Data', 'Desain Infografis Visual', 'Verifikasi Ahli Peneliti'],
+  },
 ];
 
 export const AVAILABLE_CHANNELS: { id: ChannelType; name: string }[] = [
@@ -83,6 +134,7 @@ export function useIntakeForm(options: UseIntakeFormOptions = {}) {
   } = useHortiFlow();
 
   // 1. State Nilai Input Form (Local State)
+  const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
   const [title, setTitle] = useState('');
   const [contentType, setContentType] = useState<ContentType>('ARTICLE');
   const [communicationGoal, setCommunicationGoal] = useState('');
@@ -151,27 +203,60 @@ export function useIntakeForm(options: UseIntakeFormOptions = {}) {
     );
   }, []);
 
-  // Handler Autofill (Isi Form Otomatis dari Preset)
+  // Mengembalikan form ke keadaan kosong
+  const handleResetForm = useCallback(() => {
+    setSelectedPreset(null);
+    setTitle('');
+    setCommunicationGoal('');
+    setTargetAudience('');
+    setTopicsInput('');
+    setInitialSources('');
+    setContentType('ARTICLE');
+    setUrgency('MEDIUM');
+    setRiskLevel('LOW');
+    setSelectedChannels(['WEBSITE', 'INSTAGRAM']);
+    setSelectedResources(['Naskah & Riset Data', 'Desain Infografis Visual']);
+    setCampaignId('');
+    setUnitId(currentUser?.unitId || '');
+    setErrors({});
+    setSubmittedTicket(null);
+  }, [currentUser?.unitId]);
+
+  // Handler Autofill Toggle (Pilih / Batal Pilih Preset)
   const handleApplyPreset = useCallback(
     (preset: IntakePreset) => {
-      setTitle(preset.title);
-      setContentType(preset.contentType);
-      setCommunicationGoal(preset.goal);
-      setTargetAudience(preset.audience);
-      setTopicsInput(preset.topics);
-      setUrgency(preset.urgency);
-      setRiskLevel(preset.riskLevel);
-      setInitialSources(preset.sources);
-      setSelectedChannels(preset.channels);
-      setSelectedResources(preset.resources);
+      if (selectedPreset === preset.name) {
+        // Toggle Batal Pilih (Deselect / Reset)
+        handleResetForm();
+      } else {
+        // Toggle Pilih (Select & Autofill)
+        setSelectedPreset(preset.name);
+        setTitle(preset.title);
+        setContentType(preset.contentType);
+        setCommunicationGoal(preset.goal);
+        setTargetAudience(preset.audience);
+        setTopicsInput(preset.topics);
+        setUrgency(preset.urgency);
+        setRiskLevel(preset.riskLevel);
+        setInitialSources(preset.sources);
+        setSelectedChannels(preset.channels);
+        setSelectedResources(preset.resources);
 
-      const matchingUnit = units.find((u) => u.name.includes(preset.unit.split(' ')[1] || ''));
-      if (matchingUnit) {
-        setUnitId(matchingUnit.id);
+        const matchingUnit = units.find(
+          (u) =>
+            (preset.unitId && u.id === preset.unitId) ||
+            u.name.toLowerCase().includes(preset.unit.toLowerCase()) ||
+            preset.unit.toLowerCase().includes(u.name.toLowerCase())
+        );
+        if (matchingUnit) {
+          setUnitId(matchingUnit.id);
+        } else if (preset.unitId) {
+          setUnitId(preset.unitId);
+        }
+        setErrors({});
       }
-      setErrors({});
     },
-    [units]
+    [selectedPreset, units, handleResetForm]
   );
 
   // 4. Fungsi Validasi Form (Memastikan Tidak Kosong)
@@ -190,24 +275,6 @@ export function useIntakeForm(options: UseIntakeFormOptions = {}) {
     setErrors(nextErrors);
     return Object.keys(nextErrors).length === 0; // Return true jika lolos tanpa error
   }, [title, communicationGoal]);
-
-  // Mengembalikan form ke keadaan kosong
-  const handleResetForm = useCallback(() => {
-    setTitle('');
-    setCommunicationGoal('');
-    setTargetAudience('');
-    setTopicsInput('');
-    setInitialSources('');
-    setContentType('ARTICLE');
-    setUrgency('MEDIUM');
-    setRiskLevel('LOW');
-    setSelectedChannels(['WEBSITE', 'INSTAGRAM']);
-    setSelectedResources(['Naskah & Riset Data', 'Desain Infografis Visual']);
-    setCampaignId('');
-    setUnitId(currentUser?.unitId || '');
-    setErrors({});
-    setSubmittedTicket(null);
-  }, [currentUser?.unitId]);
 
   // Eksekusi Submit (Submit Action)
   const handleSubmit = useCallback(
@@ -277,6 +344,8 @@ export function useIntakeForm(options: UseIntakeFormOptions = {}) {
     selectedResources, setSelectedResources,
 
     // Derived values & Analysis
+    selectedPreset,
+    setSelectedPreset,
     currentTopics,
     detectedDuplicates,
     readinessIndex,

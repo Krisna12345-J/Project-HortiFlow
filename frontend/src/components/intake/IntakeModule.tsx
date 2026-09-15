@@ -6,6 +6,7 @@ import {
   FileText,
   Clock,
   CheckCircle,
+  CheckCircle2,
   XCircle,
   GitMerge,
   HelpCircle,
@@ -82,6 +83,7 @@ export const IntakeModule: React.FC<IntakeModuleProps> = ({ setActiveView }) => 
     selectedResources,
     detectedDuplicates,
     readinessIndex,
+    selectedPreset,
     toggleChannel,
     toggleResource,
     handleApplyPreset,
@@ -294,29 +296,67 @@ export const IntakeModule: React.FC<IntakeModuleProps> = ({ setActiveView }) => 
           </div>
 
           {/* Quick Presets Bar */}
-          <div className="p-3 bg-emerald-50/70 border border-emerald-200/80 rounded-xl">
-            <div className="flex items-center justify-between gap-2 mb-2">
+          <div className="p-3.5 bg-emerald-50/70 border border-emerald-200/80 rounded-xl">
+            <div className="flex items-center justify-between gap-2 mb-2.5">
               <span className="text-xs font-bold text-emerald-950 flex items-center gap-1.5">
                 <Sparkles className="w-4 h-4 text-emerald-600" />
-                Template Usulan Cepat (Autofill Instan):
+                Pilih Template Usulan Cepat (Autofill Instan):
               </span>
-              <span className="text-[10px] text-emerald-700">Klik untuk isi otomatis formulir</span>
+              <span className="text-[10px] text-emerald-700 font-medium">
+                {selectedPreset ? 'Klik card aktif untuk batal pilih' : 'Klik untuk isi otomatis'}
+              </span>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              {INTAKE_PRESETS.map((preset) => (
-                <button
-                  key={preset.name}
-                  type="button"
-                  onClick={() => handleApplyPreset(preset)}
-                  className="p-2 text-left bg-white hover:bg-emerald-100/50 border border-emerald-200 hover:border-emerald-300 rounded-lg text-xs transition-colors group shadow-2xs"
-                >
-                  <p className="font-bold text-slate-800 group-hover:text-emerald-800 text-[11px] truncate">
-                    {preset.name}
-                  </p>
-                  <p className="text-[10px] text-slate-500 truncate mt-0.5">{preset.contentType}</p>
-                </button>
-              ))}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+              {INTAKE_PRESETS.map((preset) => {
+                const isSelected = selectedPreset === preset.name;
+                return (
+                  <button
+                    key={preset.name}
+                    type="button"
+                    onClick={() => handleApplyPreset(preset)}
+                    className={`p-2.5 text-left rounded-xl text-xs transition-all relative group flex flex-col justify-between ${
+                      isSelected
+                        ? 'bg-emerald-50/90 border-2 border-emerald-600 ring-2 ring-emerald-500/20 shadow-xs'
+                        : 'bg-white hover:bg-emerald-50/40 border border-slate-200 hover:border-emerald-300 shadow-2xs'
+                    }`}
+                  >
+                    <div>
+                      <div className="flex items-center justify-between gap-1 mb-1">
+                        <span
+                          className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
+                            isSelected
+                              ? 'bg-emerald-600 text-white'
+                              : 'bg-slate-100 text-slate-600 group-hover:bg-emerald-100 group-hover:text-emerald-800'
+                          }`}
+                        >
+                          {preset.badgeLabel || preset.contentType}
+                        </span>
+                        {isSelected && (
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                        )}
+                      </div>
+                      <p
+                        className={`font-bold text-[11px] leading-tight line-clamp-1 ${
+                          isSelected ? 'text-emerald-950' : 'text-slate-800 group-hover:text-emerald-900'
+                        }`}
+                      >
+                        {preset.name}
+                      </p>
+                    </div>
+                    <div className="mt-2 pt-1 border-t border-slate-100 flex items-center justify-between text-[10px]">
+                      <span className="text-slate-400 truncate max-w-[100px]">{preset.unit.replace('Direktorat ', 'Dit. ')}</span>
+                      <span
+                        className={`font-semibold ${
+                          isSelected ? 'text-emerald-700' : 'text-slate-400 group-hover:text-emerald-600'
+                        }`}
+                      >
+                        {isSelected ? 'Aktif ✕' : 'Pilih →'}
+                      </span>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           </div>
 

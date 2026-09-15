@@ -25,7 +25,7 @@ import {
 } from 'lucide-react';
 import { useHortiFlow } from '../../context/HortiFlowContext';
 import { ActiveView } from '../layout/Sidebar';
-import { AuditEvent, AuditSeverity } from '../../types';
+import { AuditLog, AuditSeverity } from '../../types';
 
 interface AuditLogViewerProps {
   setActiveView: (view: ActiveView) => void;
@@ -38,7 +38,7 @@ export const AuditLogViewer: React.FC<AuditLogViewerProps> = ({ setActiveView })
   const [filterAction, setFilterAction] = useState('ALL');
   const [filterSeverity, setFilterSeverity] = useState<string>('ALL');
   const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [selectedAuditLog, setSelectedAuditLog] = useState<AuditEvent | null>(null);
+  const [selectedAuditLog, setSelectedAuditLog] = useState<AuditLog | null>(null);
 
   // Copy to clipboard helper
   const handleCopyText = (text: string, id: string) => {

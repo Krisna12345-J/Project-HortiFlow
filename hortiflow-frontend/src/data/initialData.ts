@@ -2,7 +2,7 @@ import {
   User,
   Unit,
   Campaign,
-  ContentRequest,
+  RequestContent,
   ContentPackage,
   BriefVersion,
   ContentSource,
@@ -18,7 +18,7 @@ import {
   PublicationProof,
   MetricSnapshot,
   ArchivePackage,
-  AuditEvent,
+  AuditLog,
   AppNotification,
 } from '../types';
 
@@ -166,7 +166,7 @@ export const INITIAL_CAMPAIGNS: Campaign[] = [
   },
 ];
 
-export const INITIAL_REQUESTS: ContentRequest[] = [
+export const INITIAL_REQUESTS: RequestContent[] = [
   {
     id: 'req-101',
     ticketNumber: 'REQ-2026-0101',
@@ -1023,7 +1023,7 @@ export const INITIAL_ARCHIVES: Record<string, ArchivePackage> = {
   },
 };
 
-export const INITIAL_AUDIT_LOGS: AuditEvent[] = [
+export const INITIAL_AUDIT_LOGS: AuditLog[] = [
   {
     id: 'aud-crit-1',
     correlationId: '4b3917d2-7c3e-4d7a-8f55-2e19a4e3c910',

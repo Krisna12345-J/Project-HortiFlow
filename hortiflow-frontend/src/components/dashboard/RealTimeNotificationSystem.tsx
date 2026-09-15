@@ -34,8 +34,10 @@ export const RealTimeNotificationSystem: React.FC<RealTimeNotificationSystemProp
     const alerts: RealTimeAlertItem[] = [];
     const now = new Date('2026-09-11T12:00:00Z').getTime();
 
+    const safePackages = packages || [];
+
     // 1. URGENT APPROVAL REQUESTS
-    const pendingApprovalPkgs = packages.filter((p) => p.lifecycleStatus === 'APPROVAL_PENDING');
+    const pendingApprovalPkgs = safePackages.filter((p) => p.lifecycleStatus === 'APPROVAL_PENDING');
     pendingApprovalPkgs.forEach((pkg, idx) => {
       alerts.push({
         id: `alert-appr-${pkg.id}`,
@@ -53,7 +55,7 @@ export const RealTimeNotificationSystem: React.FC<RealTimeNotificationSystemProp
     });
 
     // 2. CRITICAL DEADLINES
-    const activePackages = packages.filter(
+    const activePackages = safePackages.filter(
       (p) => p.lifecycleStatus !== 'PUBLISHED' && p.lifecycleStatus !== 'ARCHIVED' && p.lifecycleStatus !== 'WITHDRAWN'
     );
 
@@ -79,7 +81,7 @@ export const RealTimeNotificationSystem: React.FC<RealTimeNotificationSystemProp
     });
 
     // 3. QUALITY GATE BLOCKERS
-    const blockedPkgs = packages.filter((p) => p.hasBlocker);
+    const blockedPkgs = safePackages.filter((p) => p.hasBlocker);
     blockedPkgs.forEach((pkg) => {
       alerts.push({
         id: `alert-blocker-${pkg.id}`,

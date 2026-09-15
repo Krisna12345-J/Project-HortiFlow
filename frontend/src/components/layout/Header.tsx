@@ -13,6 +13,7 @@ import {
   Layers,
   Menu,
   LogIn,
+  LogOut,
 } from 'lucide-react';
 import { useHortiFlow } from '../../context/HortiFlowContext';
 import { ActiveView } from './Sidebar';
@@ -30,6 +31,7 @@ export const Header: React.FC<HeaderProps> = ({ activeView, setActiveView, onOpe
   const {
     currentUser,
     setCurrentUser,
+    logout,
     users,
     notifications,
     markNotificationRead,
@@ -287,17 +289,17 @@ export const Header: React.FC<HeaderProps> = ({ activeView, setActiveView, onOpe
                 })}
               </div>
 
-              <div className="pt-2 mt-2 border-t border-slate-100">
+              <div className="pt-2 mt-2 border-t border-slate-100 space-y-1">
                 <button
                   id="btn-goto-login-page"
                   onClick={() => {
-                    setActiveView('login');
+                    logout();
                     setShowUserMenu(false);
                   }}
-                  className="w-full flex items-center justify-center gap-2 p-2 rounded-lg text-xs font-bold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 transition-colors"
+                  className="w-full flex items-center justify-center gap-2 p-2 rounded-lg text-xs font-bold text-red-700 bg-red-50 hover:bg-red-100 transition-colors cursor-pointer"
                 >
-                  <LogIn className="w-3.5 h-3.5" />
-                  <span>Buka Halaman Masuk (Portal SSO)</span>
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span>Keluar dari Akun (Logout)</span>
                 </button>
               </div>
             </div>

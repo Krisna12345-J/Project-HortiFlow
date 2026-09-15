@@ -87,6 +87,10 @@ export const generateUniqueId = (prefix: string): string => {
    1. STATIC / CONFIG CONTEXT TYPE (Rarely changes: User Session, Master Data)
    ========================================================================= */
 export interface StaticConfigContextType {
+  isAuthenticated: boolean;
+  setIsAuthenticated: (auth: boolean) => void;
+  login: (user: User) => void;
+  logout: () => void;
   currentUser: User;
   setCurrentUser: (user: User) => void;
   setCurrentUserId: (id: string) => void;
@@ -314,8 +318,30 @@ export const HortiFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [campaigns, setCampaigns] = useState<Campaign[]>(() => safeLoadFromStorage('hortiflow_campaigns', INITIAL_CAMPAIGNS));
   const [currentUser, setCurrentUser] = useState<User>(() => {
     const loadedUsers = safeLoadFromStorage('hortiflow_users', INITIAL_USERS);
+    const savedUserId = localStorage.getItem('hortiflow_user_id');
+    if (savedUserId) {
+      const found = loadedUsers.find((u: User) => u.id === savedUserId);
+      if (found) return found;
+    }
     return loadedUsers[1] || INITIAL_USERS[1];
   });
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    const saved = localStorage.getItem('hortiflow_authenticated');
+    return saved === 'true';
+  });
+
+  const login = useCallback((user: User) => {
+    setCurrentUser(user);
+    setIsAuthenticated(true);
+    localStorage.setItem('hortiflow_authenticated', 'true');
+    localStorage.setItem('hortiflow_user_id', user.id);
+  }, []);
+
+  const logout = useCallback(() => {
+    setIsAuthenticated(false);
+    localStorage.removeItem('hortiflow_authenticated');
+  }, []);
+
   const [delegations, setDelegations] = useState<ApprovalDelegation[]>(() => safeLoadFromStorage('hortiflow_delegations', INITIAL_DELEGATIONS));
 
   // -------------------------------------------------------------
@@ -2470,6 +2496,10 @@ export const HortiFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   // 1. Static Config Value
   const staticConfigValue = useMemo<StaticConfigContextType>(
     () => ({
+      isAuthenticated,
+      setIsAuthenticated,
+      login,
+      logout,
       currentUser,
       setCurrentUser,
       setCurrentUserId,
@@ -2489,6 +2519,9 @@ export const HortiFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       restoreDataSnapshot,
     }),
     [
+      isAuthenticated,
+      login,
+      logout,
       currentUser,
       setCurrentUserId,
       users,

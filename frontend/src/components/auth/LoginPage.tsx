@@ -225,7 +225,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   return (
     <div
       id="hortiflow-login-page"
-      className={`min-h-[calc(100vh-4rem)] flex flex-col items-center justify-center p-4 sm:p-6 bg-slate-50 text-slate-800 selection:bg-emerald-100 selection:text-emerald-900 ${className}`}
+      className={`min-h-screen flex flex-col items-center justify-center p-4 sm:p-6 bg-slate-50 text-slate-800 selection:bg-emerald-100 selection:text-emerald-900 ${className}`}
     >
       {/* Central Login Card */}
       <div className="w-full max-w-md bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8 space-y-6">

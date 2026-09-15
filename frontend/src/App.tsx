@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { HortiFlowProvider } from './context/HortiFlowContext';
+import { HortiFlowProvider, useHortiFlow } from './context/HortiFlowContext';
 import { Sidebar, ActiveView } from './components/layout/Sidebar';
 import { Header } from './components/layout/Header';
 import { MainDashboard } from './components/dashboard/MainDashboard';
@@ -20,9 +20,22 @@ import { LoginPage } from './components/auth/LoginPage';
 import { IntakeModal } from './components/intake/IntakeModal';
 
 function AppContent() {
+  const { isAuthenticated, login } = useHortiFlow();
   const [activeView, setActiveView] = useState<ActiveView>('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
   const [isIntakeModalOpen, setIsIntakeModalOpen] = useState<boolean>(false);
+
+  // Jika belum terautentikasi (belum login), tampilkan Portal Login Layar Penuh
+  if (!isAuthenticated) {
+    return (
+      <LoginPage
+        onLoginSuccess={(user) => {
+          login(user);
+          setActiveView('dashboard');
+        }}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen flex bg-slate-50 text-slate-900 font-sans selection:bg-emerald-100 selection:text-emerald-900">

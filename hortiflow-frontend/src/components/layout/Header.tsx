@@ -44,15 +44,15 @@ export const Header: React.FC<HeaderProps> = ({ activeView, setActiveView, onOpe
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearchResults, setShowSearchResults] = useState(false);
 
-  const unreadNotifs = notifications.filter((n) => !n.isRead);
+  const unreadNotifs = (notifications || []).filter((n) => !n.isRead);
 
   // Search through packages
   const searchResults = searchQuery.trim()
-    ? packages.filter(
+    ? (packages || []).filter(
         (p) =>
-          p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          p.packageNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          p.tags.some((t) => t.toLowerCase().includes(searchQuery.toLowerCase()))
+          p.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          p.packageNumber?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          p.tags?.some((t) => t.toLowerCase().includes(searchQuery.toLowerCase()))
       )
     : [];
 

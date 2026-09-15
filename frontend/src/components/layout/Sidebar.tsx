@@ -152,23 +152,27 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {isOpen && (
         <div
           onClick={() => setIsOpen?.(false)}
-          className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-40 md:hidden animate-in fade-in"
+          className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-40 md:hidden animate-in fade-in duration-200"
         />
       )}
 
       <aside
         id="hortiflow-sidebar"
-        className={`fixed top-0 bottom-0 left-0 w-64 bg-white border-r border-slate-200/80 flex flex-col shrink-0 select-none z-50 transition-transform duration-200 ease-in-out md:translate-x-0 ${
-          isOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'
+        className={`fixed top-0 bottom-0 left-0 w-64 bg-white border-r border-slate-200/80 flex flex-col shrink-0 select-none z-50 transition-all duration-300 ease-in-out ${
+          isOpen
+            ? 'translate-x-0 shadow-2xl md:shadow-none'
+            : '-translate-x-full pointer-events-none'
         } ${className}`}
       >
         {/* Brand Header */}
-        <div className="h-16 px-5 border-b border-slate-100 flex items-center justify-between">
+        <div className="h-16 px-4 border-b border-slate-100 flex items-center justify-between">
           <Logo size="md" />
           {setIsOpen && (
             <button
               onClick={() => setIsOpen(false)}
-              className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg md:hidden"
+              className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors flex items-center justify-center md:hidden"
+              title="Tutup Menu Navigasi"
+              aria-label="Tutup Menu Navigasi"
             >
               <X className="w-5 h-5" />
             </button>
@@ -191,7 +195,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     id={`nav-${item.id}`}
                     onClick={() => {
                       setActiveView(item.id);
-                      setIsOpen?.(false);
                     }}
                     className={`w-full flex items-center justify-between px-3 py-2 rounded-lg font-medium transition-all duration-150 text-left ${
                       isActive

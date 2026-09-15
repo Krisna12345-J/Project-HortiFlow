@@ -22,7 +22,13 @@ import { IntakeModal } from './components/intake/IntakeModal';
 function AppContent() {
   const { isAuthenticated, login } = useHortiFlow();
   const [activeView, setActiveView] = useState<ActiveView>('dashboard');
-  const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(() => {
+    // Default terbuka pada desktop (>= 768px), tertutup pada mobile (< 768px)
+    if (typeof window !== 'undefined') {
+      return window.innerWidth >= 768;
+    }
+    return true;
+  });
   const [isIntakeModalOpen, setIsIntakeModalOpen] = useState<boolean>(false);
 
   // Jika belum terautentikasi (belum login), tampilkan Portal Login Layar Penuh
@@ -39,25 +45,27 @@ function AppContent() {
 
   return (
     <div className="min-h-screen flex bg-slate-50 text-slate-900 font-sans selection:bg-emerald-100 selection:text-emerald-900">
-      {/* 256px Enterprise Navigation Sidebar */}
+      {/* 256px Enterprise Navigation Sidebar with Smooth Collapsible Transition */}
       <div className="print:hidden">
         <Sidebar
           activeView={activeView}
-          setActiveView={(view) => {
-            setActiveView(view);
-            setSidebarOpen(false); // Tutup drawer mobile saat menu dipilih
-          }}
-          isOpen={sidebarOpen}
-          setIsOpen={setSidebarOpen}
+          setActiveView={setActiveView}
+          isOpen={isSidebarOpen}
+          setIsOpen={setIsSidebarOpen}
         />
       </div>
 
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 md:pl-64 print:pl-0">
-        {/* Global Application Header */}
+      {/* Main Content Area with Smooth Dynamic Padding */}
+      <div
+        className={`flex-1 flex flex-col min-w-0 print:pl-0 transition-[padding] duration-300 ease-in-out ${
+          isSidebarOpen ? 'md:pl-64' : 'md:pl-0'
+        }`}
+      >
+        {/* Global Application Header with Always-Visible Toggle Button */}
         <div className="print:hidden">
           <Header
-            onToggleSidebar={() => setSidebarOpen((prev) => !prev)}
+            isSidebarOpen={isSidebarOpen}
+            onToggleSidebar={() => setIsSidebarOpen((prev) => !prev)}
             setActiveView={setActiveView}
             onOpenIntakeModal={() => setIsIntakeModalOpen(true)}
           />

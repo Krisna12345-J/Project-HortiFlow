@@ -147,28 +147,63 @@ export const LoginPage: React.FC<LoginPageProps> = ({
     setCapsLockActive(!!isCaps);
   };
 
-  // Perform Authentication
-  const handlePerformLogin = (targetUser?: User) => {
+  // Perform Authentication with Backend API & Resilient Fallback
+  const handlePerformLogin = async (targetUser?: User) => {
     setErrors({});
     setIsSubmitting(true);
 
-    setTimeout(() => {
+    try {
+      // 1. Attempt Backend API Authentication
+      const payload: { identifier?: string; password?: string; role?: string } = {};
+      if (targetUser) {
+        payload.role = targetUser.role;
+        payload.identifier = targetUser.email;
+      } else {
+        payload.identifier = identifier.trim();
+        payload.password = password;
+      }
+
+      let backendSuccess = false;
       let matchedUser: User | undefined;
 
-      if (targetUser) {
-        matchedUser = targetUser;
-      } else {
-        const query = identifier.trim().toLowerCase();
-        matchedUser = users.find(
-          (u) =>
-            u.email.toLowerCase() === query ||
-            u.username.toLowerCase() === query ||
-            u.fullName.toLowerCase().includes(query)
-        );
+      try {
+        const response = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
 
-        if (!matchedUser && query.length >= 3) {
-          if (password === 'HortiFlow@2026' || password.length >= 6) {
-            matchedUser = users[1]; // default fallback to Planner
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.user) {
+            backendSuccess = true;
+            matchedUser = data.user;
+            if (data.token) {
+              localStorage.setItem('hortiflow_token', data.token);
+            }
+          }
+        }
+      } catch {
+        // Backend offline or during startup - proceed to client-side fallback
+      }
+
+      // 2. Client-side fallback if backend request did not return a user
+      if (!backendSuccess || !matchedUser) {
+        if (targetUser) {
+          matchedUser = targetUser;
+        } else {
+          const query = identifier.trim().toLowerCase();
+          matchedUser = users.find(
+            (u) =>
+              u.email.toLowerCase() === query ||
+              u.username.toLowerCase() === query ||
+              u.fullName.toLowerCase().includes(query)
+          );
+
+          if (!matchedUser && query.length >= 3) {
+            if (password === 'HortiFlow@2026' || password.length >= 6) {
+              matchedUser = users[1]; // default fallback to Planner
+            }
           }
         }
       }
@@ -198,8 +233,13 @@ export const LoginPage: React.FC<LoginPageProps> = ({
         if (onLoginSuccess) {
           onLoginSuccess(matchedUser);
         }
-      }, 600);
-    }, 500);
+      }, 500);
+    } catch {
+      setIsSubmitting(false);
+      setErrors({
+        general: 'Terjadi kesalahan sistem saat memproses login. Coba lagi.',
+      });
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {

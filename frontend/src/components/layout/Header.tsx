@@ -25,9 +25,16 @@ interface HeaderProps {
   setActiveView: (view: ActiveView) => void;
   onOpenIntakeModal?: () => void;
   onToggleSidebar?: () => void;
+  isSidebarOpen?: boolean;
 }
 
-export const Header: React.FC<HeaderProps> = ({ activeView, setActiveView, onOpenIntakeModal, onToggleSidebar }) => {
+export const Header: React.FC<HeaderProps> = ({
+  activeView,
+  setActiveView,
+  onOpenIntakeModal,
+  onToggleSidebar,
+  isSidebarOpen = true,
+}) => {
   const {
     currentUser,
     setCurrentUser,
@@ -81,19 +88,33 @@ export const Header: React.FC<HeaderProps> = ({ activeView, setActiveView, onOpe
       id="hortiflow-header"
       className="h-16 bg-white border-b border-slate-200/80 px-4 sm:px-6 flex items-center justify-between sticky top-0 z-20"
     >
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 sm:gap-3">
         {onToggleSidebar && (
           <button
+            id="nav-sidebar-toggle-btn"
+            type="button"
             onClick={onToggleSidebar}
-            className="md:hidden p-2 -ml-1 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
-            title="Buka Menu"
+            className={`h-9.5 px-2.5 sm:px-3 rounded-lg border transition-all duration-150 flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-emerald-500/25 active:scale-98 shadow-xs cursor-pointer select-none ${
+              isSidebarOpen
+                ? 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700 hover:text-slate-900'
+                : 'bg-emerald-50 hover:bg-emerald-100/80 border-emerald-300 text-emerald-800'
+            }`}
+            title={isSidebarOpen ? 'Sembunyikan Menu Navigasi' : 'Tampilkan Menu Navigasi'}
+            aria-label="Toggle Menu Navigasi"
           >
-            <Menu className="w-5 h-5" />
+            <Menu className="w-4.5 h-4.5 shrink-0 text-slate-700" />
+            <span className="hidden sm:inline-block text-xs font-medium text-slate-700">
+              {isSidebarOpen ? 'Tutup Menu' : 'Buka Menu'}
+            </span>
           </button>
         )}
 
-        {/* Mobile Brand Logo */}
-        <div className="md:hidden flex items-center">
+        {/* Brand Logo in Header - displayed only when sidebar is collapsed on desktop, or always on mobile */}
+        <div
+          className={`items-center transition-opacity duration-200 ${
+            isSidebarOpen ? 'hidden' : 'flex'
+          }`}
+        >
           <Logo size="sm" showSubtitle={false} />
         </div>
 

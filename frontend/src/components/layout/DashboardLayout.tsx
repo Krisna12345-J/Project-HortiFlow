@@ -17,7 +17,12 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   pageTitle,
   breadcrumb,
 }) => {
-  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth >= 768;
+    }
+    return true;
+  });
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col font-sans antialiased text-slate-800 dark:text-slate-100">
@@ -25,21 +30,23 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
         {/* Responsive Collapsible Sidebar */}
         <Sidebar
           activeView={activeView}
-          setActiveView={(view) => {
-            setActiveView(view);
-            setIsMobileSidebarOpen(false);
-          }}
-          isOpen={isMobileSidebarOpen}
-          setIsOpen={setIsMobileSidebarOpen}
+          setActiveView={setActiveView}
+          isOpen={isSidebarOpen}
+          setIsOpen={setIsSidebarOpen}
         />
 
-        {/* Main Content Area */}
-        <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
+        {/* Main Content Area with Smooth Padding */}
+        <div
+          className={`flex-1 flex flex-col min-w-0 overflow-y-auto transition-[padding] duration-300 ease-in-out ${
+            isSidebarOpen ? 'md:pl-64' : 'md:pl-0'
+          }`}
+        >
           {/* Top Header */}
           <Header
             activeView={activeView}
             setActiveView={setActiveView}
-            onToggleSidebar={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
+            isSidebarOpen={isSidebarOpen}
+            onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
           />
 
           {/* Dynamic Page Container */}

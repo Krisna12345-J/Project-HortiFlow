@@ -21,7 +21,7 @@ Proyek ini menggunakan pendekatan *monorepo*, memisahkan lingkungan *frontend* d
 ```text
 hortiflow-project/
 │
-├── backend/          # API, Routing, Model, dan Migrasi Database
-├── frontend/         # UI React, Komponen Kanban, dan Halaman Dashboard
+├── hortiflow-backend/          # API, Routing, Model, dan Migrasi Database
+├── hortiflow-frontend/         # UI React, Komponen Kanban, dan Halaman Dashboard
 ├── .gitignore        # Pengecualian file dari Git
 └── README.md         # Dokumentasi proyek
